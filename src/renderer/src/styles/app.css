@@ -232,6 +232,28 @@ body {
   background: var(--greenbg);
 }
 
+.visit {
+  flex: none;
+  width: 22px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--faint);
+}
+
+.row:hover .visit {
+  color: var(--txt2);
+}
+
+.visit:hover {
+  color: var(--bluetx);
+}
+
 .chev {
   flex: none;
   width: 20px;
@@ -537,28 +559,35 @@ body {
 }
 
 .foot-kbd {
+  flex: none;
   font-family: ui-monospace, Menlo, monospace;
   font-size: 10.5px;
   color: var(--faint);
-}
-
-.foot-sep {
-  color: var(--faint);
-  font-size: 11px;
-}
-
-.foot-link {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--txt2);
-  cursor: pointer;
   background: none;
   border: none;
-  font-family: inherit;
-  padding: 0;
+  padding: 2px 4px;
+  cursor: pointer;
 }
 
-.foot-link:hover {
+.foot-kbd:hover {
+  color: var(--txt);
+}
+
+.foot-icon {
+  flex: none;
+  width: 22px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--faint);
+}
+
+.foot-icon:hover {
   color: var(--txt);
 }
 

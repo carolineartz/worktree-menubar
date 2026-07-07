@@ -1,14 +1,13 @@
 import type { JSX } from 'react'
 import type { AppState } from '../../../shared/ipc'
+import { Gear } from './icons'
 
 export function FooterBar({
   state,
-  now,
   onRefresh,
   onOpenSettings
 }: {
   state: AppState
-  now: number
   onRefresh: () => void
   onOpenSettings: () => void
 }): JSX.Element {
@@ -28,27 +27,18 @@ export function FooterBar({
     text = 'Docker not running — stacks shown as stopped'
   } else {
     dot = running > 0 ? 'green' : 'hollow'
-    const ago =
-      state.lastRefreshAt == null
-        ? null
-        : Math.max(0, Math.floor((now - state.lastRefreshAt) / 1000))
-    text =
-      ago == null
-        ? `${running} / ${total} running`
-        : `${running} / ${total} running · refreshed ${ago}s ago`
+    text = `${running} / ${total} running`
   }
 
   return (
     <div className="footer">
       <span className={`foot-dot ${dot}`} />
       <span className="foot-text">{text}</span>
-      <span className="foot-kbd">⌘R</span>
-      <span className="foot-sep">·</span>
-      <button className="foot-link" onClick={onRefresh}>
-        Refresh
+      <button className="foot-kbd" onClick={onRefresh} title="Refresh">
+        ⌘R
       </button>
-      <button className="foot-link" onClick={onOpenSettings}>
-        Settings
+      <button className="foot-icon" onClick={onOpenSettings} title="Settings" aria-label="Settings">
+        <Gear />
       </button>
     </div>
   )

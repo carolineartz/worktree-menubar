@@ -1,10 +1,10 @@
-import type { JSX } from 'react'
+import type { JSX, MouseEvent } from 'react'
 import type { WorktreeSnapshot } from '../../../shared/types'
-import { ChevronDown } from './icons'
+import { ChevronDown, OpenExternal } from './icons'
 
 export interface RowActions {
-  /** primary: open the dev URL (running rows) or toggle expand (stopped rows) */
-  rowClick(wt: WorktreeSnapshot): void
+  /** primary: toggle expand; ⌘-click opens the dev URL on running rows */
+  rowClick(wt: WorktreeSnapshot, e: MouseEvent): void
   toggleExpand(id: string): void
   openUrl(wt: WorktreeSnapshot): void
   openEditor(wt: WorktreeSnapshot): void
@@ -39,7 +39,7 @@ export function WorktreeRow({
         className={['row', isStopped && 'stopped', expanded && 'expanded']
           .filter(Boolean)
           .join(' ')}
-        onClick={() => actions.rowClick(wt)}
+        onClick={(e) => actions.rowClick(wt, e)}
       >
         <span className={`dot ${tone}`} />
         <span className={`port ${tone}`}>{wt.port}</span>
@@ -47,6 +47,18 @@ export function WorktreeRow({
           <div className="branch">{wt.branch}</div>
           <div className="meta">{wt.label}</div>
         </div>
+        {wt.status === 'running' && (
+          <button
+            className="visit"
+            title="Open in browser (or ⌘-click the row)"
+            onClick={(e) => {
+              e.stopPropagation()
+              actions.openUrl(wt)
+            }}
+          >
+            <OpenExternal />
+          </button>
+        )}
         {isTransition && (
           <span className="transition-pill">
             {wt.status === 'starting' ? 'starting…' : 'stopping…'}

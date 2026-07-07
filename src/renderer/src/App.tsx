@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent
+} from 'react'
 import type { AppState } from '../../shared/ipc'
 import type { WorktreeSnapshot } from '../../shared/types'
 import { api } from './lib/api'
@@ -12,7 +20,6 @@ export default function App(): JSX.Element {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [confirmText, setConfirmText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
-  const [now, setNow] = useState(() => Date.now())
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const showToast = useCallback((msg: string): void => {
@@ -29,12 +36,10 @@ export default function App(): JSX.Element {
       setConfirmingId(null)
       setConfirmText('')
     })
-    const iv = setInterval(() => setNow(Date.now()), 1000)
     return () => {
       offData()
       offOp()
       offShown()
-      clearInterval(iv)
     }
   }, [showToast])
 
@@ -79,13 +84,14 @@ export default function App(): JSX.Element {
 
   const actions: RowActions = useMemo(
     () => ({
-      rowClick: (wt: WorktreeSnapshot) => {
-        if (wt.status === 'stopped') {
-          toggleExpand(wt.id)
+      rowClick: (wt: WorktreeSnapshot, e: MouseEvent) => {
+        // Default: expand/collapse. ⌘-click opens the site (running rows only).
+        if (e.metaKey && wt.status === 'running') {
+          void api.openUrl(wt.id)
+          showToast(`Opened localhost:${wt.port} ↗`)
           return
         }
-        void api.openUrl(wt.id)
-        showToast(`Opened localhost:${wt.port} ↗`)
+        toggleExpand(wt.id)
       },
       toggleExpand,
       openUrl: (wt: WorktreeSnapshot) => {
@@ -169,7 +175,6 @@ export default function App(): JSX.Element {
       )}
       <FooterBar
         state={state}
-        now={now}
         onRefresh={() => void api.refresh()}
         onOpenSettings={() => void api.openSettingsWindow()}
       />
