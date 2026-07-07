@@ -1,0 +1,76 @@
+/* Design tokens lifted verbatim from design/Worktree Menubar.dc.html
+   ([data-th] blocks) — the shared pr-menubar visual language.
+   Light is the default; dark follows the system appearance.
+   --panel is the tint painted OVER the native vibrancy blur. */
+
+:root {
+  --panel: rgba(249, 249, 251, 0.78);
+  --panelb: rgba(0, 0, 0, 0.09);
+  --txt: #1d1d1f;
+  --txt2: #6e6e73;
+  --txt3: #86868b;
+  --faint: #a1a1a6;
+  --hair: rgba(0, 0, 0, 0.07);
+  --hov: rgba(0, 0, 0, 0.045);
+  --inset: rgba(0, 0, 0, 0.03);
+  --insetb: rgba(0, 0, 0, 0.08);
+  --green: #34c759;
+  --greentx: #248a3d;
+  --greenbg: rgba(52, 199, 89, 0.14);
+  --red: #ff453a;
+  --redtx: #c2261f;
+  --redbg: rgba(255, 59, 48, 0.1);
+  --amber: #ff9f0a;
+  --ambertx: #b45309;
+  --amberbg: rgba(255, 159, 10, 0.15);
+  --bluetx: #0a58ce;
+  --bluebg: rgba(10, 132, 255, 0.12);
+  --neutx: #6e6e73;
+  --neubg: rgba(0, 0, 0, 0.06);
+  --btnb: rgba(0, 0, 0, 0.14);
+  --btntx: #515154;
+  --win: rgba(248, 248, 250, 0.98);
+  --winb: rgba(0, 0, 0, 0.1);
+  --seg: rgba(0, 0, 0, 0.06);
+  --segact: #ffffff;
+  --segsh: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --field: rgba(0, 0, 0, 0.04);
+  --fieldb: rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel: rgba(30, 30, 36, 0.68);
+    --panelb: rgba(255, 255, 255, 0.14);
+    --txt: #ffffff;
+    --txt2: rgba(255, 255, 255, 0.65);
+    --txt3: rgba(255, 255, 255, 0.5);
+    --faint: rgba(255, 255, 255, 0.35);
+    --hair: rgba(255, 255, 255, 0.1);
+    --hov: rgba(255, 255, 255, 0.07);
+    --inset: rgba(255, 255, 255, 0.05);
+    --insetb: rgba(255, 255, 255, 0.12);
+    --green: #30d158;
+    --greentx: #63e884;
+    --greenbg: rgba(48, 209, 88, 0.18);
+    --red: #ff453a;
+    --redtx: #ff9d97;
+    --redbg: rgba(255, 69, 58, 0.18);
+    --amber: #ffd60a;
+    --ambertx: #ffd60a;
+    --amberbg: rgba(255, 214, 10, 0.15);
+    --bluetx: #9ecbff;
+    --bluebg: rgba(10, 132, 255, 0.25);
+    --neutx: rgba(255, 255, 255, 0.6);
+    --neubg: rgba(255, 255, 255, 0.1);
+    --btnb: rgba(255, 255, 255, 0.16);
+    --btntx: rgba(255, 255, 255, 0.7);
+    --win: rgba(42, 42, 48, 0.98);
+    --winb: rgba(255, 255, 255, 0.12);
+    --seg: rgba(255, 255, 255, 0.09);
+    --segact: rgba(255, 255, 255, 0.24);
+    --segsh: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --field: rgba(255, 255, 255, 0.06);
+    --fieldb: rgba(255, 255, 255, 0.14);
+  }
+}

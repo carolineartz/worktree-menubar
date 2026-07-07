@@ -1,0 +1,220 @@
+/* Settings window styles per design/Worktree Menubar.dc.html — a solid
+   (non-vibrancy-tinted) window matching pr-menubar's settings style. */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--txt);
+  background: var(--win);
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+  user-select: none;
+}
+
+.settings {
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.section .hint {
+  font-size: 11.5px;
+  color: var(--txt3);
+  line-height: 1.5;
+}
+
+/* ---- repo list ---- */
+
+.repo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--field);
+  border: 1px solid var(--fieldb);
+  border-radius: 8px;
+  padding: 7px 11px;
+}
+
+.repo-item .path {
+  flex: 1;
+  font:
+    12px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+}
+
+.repo-item .remove {
+  border: none;
+  background: none;
+  color: var(--faint);
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.repo-item .remove:hover {
+  color: var(--txt);
+}
+
+.add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-row input {
+  flex: 1;
+  font:
+    12px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--txt);
+  background: var(--field);
+  border: 1px solid var(--fieldb);
+  border-radius: 8px;
+  padding: 7px 11px;
+  outline: none;
+}
+
+.add-row input::placeholder {
+  color: var(--faint);
+}
+
+.add-row .add {
+  background: transparent;
+  border: 1px solid var(--btnb);
+  border-radius: 7px;
+  color: var(--btntx);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.add-row .add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.add-row .add:not(:disabled):hover {
+  color: var(--txt);
+  border-color: var(--txt3);
+}
+
+/* ---- label/input field rows ---- */
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-row .label {
+  width: 150px;
+  flex: none;
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+.field-row .label.grow {
+  flex: 1;
+  width: auto;
+}
+
+.field-row input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font:
+    12px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--txt);
+  background: var(--field);
+  border: 1px solid var(--fieldb);
+  border-radius: 7px;
+  padding: 6px 10px;
+  outline: none;
+}
+
+.field-row input[type='text']::placeholder {
+  color: var(--faint);
+}
+
+.field-row input.num {
+  flex: none;
+  width: 52px;
+  text-align: right;
+}
+
+.field-row .suffix {
+  font-size: 12px;
+  color: var(--txt3);
+}
+
+/* ---- checkboxes ---- */
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.toggle-row input {
+  accent-color: #0a84ff;
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- appearance segmented control ---- */
+
+.theme-seg {
+  display: flex;
+  background: var(--seg);
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.seg-btn {
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--txt2);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+
+.seg-btn.active {
+  background: var(--segact);
+  color: var(--txt);
+  font-weight: 500;
+  box-shadow: var(--segsh);
+}

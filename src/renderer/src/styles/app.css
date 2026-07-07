@@ -1,0 +1,579 @@
+/* Layout + component styles mirroring design/Worktree Menubar.dc.html.
+   All colors come from tokens.css; sizes/spacing are the prototype's values. */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Mouse-driven popover — never show Chromium's focus ring */
+:focus,
+:focus-visible {
+  outline: none;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--txt);
+  /* the design's panel tint painted OVER the native vibrancy blur — without it
+     the wallpaper bleeds through and washes out the theme */
+  background: var(--panel);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Respect Reduce Transparency: paint an opaque panel over the vibrancy */
+@media (prefers-reduced-transparency: reduce) {
+  body {
+    background: rgba(249, 249, 251, 0.98);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
+  body {
+    background: rgba(30, 30, 36, 0.98);
+  }
+}
+
+@keyframes wt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.popover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 2px 6px 0;
+}
+
+/* ---- worktree list ---- */
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* natural-height wrapper: the window auto-sizes to this, not the stretched .list */
+.list-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 6px;
+}
+
+.group-header .gname {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.group-header .gcount {
+  font:
+    600 10px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--neutx);
+  background: var(--neubg);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.group-header .grule {
+  flex: 1;
+  height: 1px;
+  background: var(--hair);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.row:hover,
+.row.expanded {
+  background: var(--hov);
+}
+
+.row.stopped {
+  opacity: 0.75;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+}
+
+.dot.running {
+  background: var(--green);
+}
+
+.dot.transition {
+  background: var(--amber);
+  animation: wt-pulse 1.1s ease-in-out infinite;
+}
+
+.dot.stopped {
+  background: transparent;
+  border: 2px solid var(--faint);
+}
+
+/* the key scanning affordance — an aligned column of port numbers */
+.port {
+  flex: none;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 7px;
+  border-radius: 6px;
+  min-width: 52px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.port.running {
+  background: var(--bluebg);
+  color: var(--bluetx);
+}
+
+.port.transition {
+  background: var(--amberbg);
+  color: var(--ambertx);
+}
+
+.port.stopped {
+  background: var(--neubg);
+  color: var(--neutx);
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-main .branch {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-main .meta {
+  font-size: 11.5px;
+  color: var(--txt3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transition-pill {
+  flex: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ambertx);
+  background: var(--amberbg);
+  padding: 3px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.start-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--btnb);
+  border-radius: 6px;
+  color: var(--greentx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.start-btn:hover {
+  border-color: var(--greentx);
+  background: var(--greenbg);
+}
+
+.chev {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--faint);
+  transition: transform 0.15s;
+}
+
+.row:hover .chev,
+.chev.chev-open {
+  color: var(--txt2);
+}
+
+.chev.chev-open {
+  transform: rotate(180deg);
+}
+
+/* ---- expanded inset panel ---- */
+
+.inset {
+  margin: 4px 10px 8px 28px;
+  background: var(--inset);
+  border: 1px solid var(--insetb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inset .chips {
+  padding: 9px 10px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chip {
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--neubg);
+  color: var(--neutx);
+}
+
+.chip.fe {
+  background: var(--bluebg);
+  color: var(--bluetx);
+}
+
+.inset .wt-path {
+  padding: 4px 11px 9px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inset .strip {
+  border-top: 1px solid var(--insetb);
+  padding: 7px 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ibtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--btnb);
+  border-radius: 6px;
+  color: var(--btntx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.ibtn:hover {
+  color: var(--txt);
+  border-color: var(--txt3);
+}
+
+.ibtn.stop:hover {
+  color: var(--redtx);
+  border-color: var(--redtx);
+}
+
+.ibtn.start {
+  color: var(--greentx);
+}
+
+.ibtn.start:hover {
+  color: var(--greentx);
+  border-color: var(--greentx);
+  background: var(--greenbg);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.tear-ask {
+  background: transparent;
+  border: none;
+  color: var(--redtx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tear-ask:hover {
+  background: var(--redbg);
+}
+
+/* typed tear-down confirm — swapped into the strip */
+
+.tear-input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--redtx);
+  background: var(--redbg);
+  border: 1px solid var(--redtx);
+  border-radius: 6px;
+  padding: 3px 8px;
+  outline: none;
+}
+
+.tear-input::placeholder {
+  color: var(--faint);
+}
+
+.tear-do {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--redbg);
+  border: 1px solid var(--redtx);
+  color: var(--redtx);
+  cursor: pointer;
+}
+
+.tear-do:disabled {
+  background: transparent;
+  border-color: var(--btnb);
+  color: var(--faint);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tear-cancel {
+  background: transparent;
+  border: 1px solid var(--btnb);
+  color: var(--btntx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tear-cancel:hover {
+  color: var(--txt);
+}
+
+/* ---- empty / setup states ---- */
+
+.empty {
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.empty .line1 {
+  font-size: 12.5px;
+  color: var(--txt3);
+}
+
+.empty .line2 {
+  font-size: 11.5px;
+  color: var(--faint);
+  max-width: 250px;
+}
+
+.empty .line2 code {
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.noconfig {
+  padding: 38px 28px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.noconfig .title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--txt2);
+}
+
+.noconfig .blurb {
+  font-size: 11.5px;
+  color: var(--txt3);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.noconfig .path-chip {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--neutx);
+  background: var(--neubg);
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+
+.noconfig .create-btn {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--btnb);
+  border-radius: 6px;
+  color: var(--btntx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 4px 11px;
+  cursor: pointer;
+}
+
+.noconfig .create-btn:hover {
+  color: var(--txt);
+  border-color: var(--txt3);
+}
+
+/* ---- footer ---- */
+
+.footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--hair);
+  padding: 8px 8px 10px;
+  margin-top: 6px;
+}
+
+.foot-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+}
+
+.foot-dot.green {
+  background: var(--green);
+}
+
+.foot-dot.hollow {
+  background: transparent;
+  border: 2px solid var(--faint);
+}
+
+.foot-dot.amber {
+  background: var(--amber);
+}
+
+.foot-text {
+  font-size: 11px;
+  color: var(--txt3);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foot-kbd {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.foot-sep {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.foot-link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+
+.foot-link:hover {
+  color: var(--txt);
+}
+
+/* ---- toast ---- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 44px;
+  z-index: 30;
+  background: rgba(20, 20, 24, 0.92);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
