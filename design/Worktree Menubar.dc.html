@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html, body { margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
+  @keyframes wt-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  [data-th="dark"] {
+    --desk: linear-gradient(135deg, #2b2e3a, #1b1c24 55%, #262230);
+    --panel: rgba(30,30,36,.68); --panelb: rgba(255,255,255,.14);
+    --txt: #fff; --txt2: rgba(255,255,255,.65); --txt3: rgba(255,255,255,.5); --faint: rgba(255,255,255,.35);
+    --hair: rgba(255,255,255,.1); --hov: rgba(255,255,255,.07);
+    --inset: rgba(255,255,255,.05); --insetb: rgba(255,255,255,.12);
+    --green: #30d158; --greentx: #63e884; --greenbg: rgba(48,209,88,.18);
+    --red: #ff453a; --redtx: #ff9d97; --redbg: rgba(255,69,58,.18);
+    --amber: #ffd60a; --ambertx: #ffd60a; --amberbg: rgba(255,214,10,.15);
+    --bluetx: #9ecbff; --bluebg: rgba(10,132,255,.25);
+    --neutx: rgba(255,255,255,.6); --neubg: rgba(255,255,255,.1);
+    --btnb: rgba(255,255,255,.16); --btntx: rgba(255,255,255,.7);
+    --win: rgba(42,42,48,.98); --winb: rgba(255,255,255,.12);
+    --seg: rgba(255,255,255,.09); --segact: rgba(255,255,255,.24);
+    --field: rgba(255,255,255,.06); --fieldb: rgba(255,255,255,.14);
+    --shadow: 0 18px 50px rgba(0,0,0,.4);
+  }
+  [data-th="light"] {
+    --desk: linear-gradient(135deg, #dde2ec, #eef0f4 55%, #e8e3ee);
+    --panel: rgba(249,249,251,.78); --panelb: rgba(0,0,0,.09);
+    --txt: #1d1d1f; --txt2: #6e6e73; --txt3: #86868b; --faint: #a1a1a6;
+    --hair: rgba(0,0,0,.07); --hov: rgba(0,0,0,.045);
+    --inset: rgba(0,0,0,.03); --insetb: rgba(0,0,0,.08);
+    --green: #34c759; --greentx: #248a3d; --greenbg: rgba(52,199,89,.14);
+    --red: #ff453a; --redtx: #c2261f; --redbg: rgba(255,59,48,.1);
+    --amber: #ff9f0a; --ambertx: #b45309; --amberbg: rgba(255,159,10,.15);
+    --bluetx: #0a58ce; --bluebg: rgba(10,132,255,.12);
+    --neutx: #6e6e73; --neubg: rgba(0,0,0,.06);
+    --btnb: rgba(0,0,0,.14); --btntx: #515154;
+    --win: rgba(248,248,250,.98); --winb: rgba(0,0,0,.1);
+    --seg: rgba(0,0,0,.06); --segact: #fff;
+    --field: rgba(0,0,0,.04); --fieldb: rgba(0,0,0,.12);
+    --shadow: 0 18px 50px rgba(0,0,0,.18);
+  }
+  input::placeholder { color: var(--faint); }
+</style>
+</helmet>
+
+<div data-th="{{ theme }}" style="min-height: 100vh; background: var(--desk); display: flex; align-items: flex-start; justify-content: center; padding: 56px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; user-select: none;">
+
+  <!-- ============ POPOVER ============ -->
+  <sc-if value="{{ isPopover }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Popover" style="width: 380px; background: var(--panel); backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4); border: 1px solid var(--panelb); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; padding: 2px 6px 0;">
+
+    <!-- worktree list -->
+    <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 14px 10px 6px;">
+          <span style="{{ g.headStyle }}">{{ g.name }}</span>
+          <span style="font-family: ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 600; color: var(--neutx); background: var(--neubg); padding: 2px 6px; border-radius: 5px;">{{ g.count }}</span>
+          <span style="flex: 1; height: 1px; background: var(--hair);"></span>
+        </div>
+        <sc-for list="{{ g.rows }}" as="wt" hint-placeholder-count="2">
+          <div style="{{ wt.rowStyle }}" onClick="{{ wt.open }}" onMouseEnter="{{ wt.enter }}" onMouseLeave="{{ wt.leave }}">
+            <span style="{{ wt.dotStyle }}"></span>
+            <span style="{{ wt.portStyle }}">{{ wt.port }}</span>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-size: 13px; font-weight: 500; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ wt.branch }}</div>
+              <div style="font-size: 11.5px; color: var(--txt3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ wt.label }}</div>
+            </div>
+            <sc-if value="{{ wt.showTransition }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 11px; font-weight: 500; color: var(--ambertx); background: var(--amberbg); padding: 3px 7px; border-radius: 99px; white-space: nowrap;">{{ wt.transitionLabel }}</span>
+            </sc-if>
+            <sc-if value="{{ wt.showStart }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ wt.startStack }}" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--greentx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; cursor: pointer;" style-hover="border-color: var(--greentx); background: var(--greenbg);">▶ Start</button>
+            </sc-if>
+            <button onClick="{{ wt.toggle }}" style="{{ wt.chevStyle }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
+          <sc-if value="{{ wt.isExpanded }}" hint-placeholder-val="{{ false }}">
+            <div style="margin: 4px 10px 8px 28px; background: var(--inset); border: 1px solid var(--insetb); border-radius: 8px; overflow: hidden;">
+              <div style="padding: 9px 10px 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                <span style="white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; font-weight: 600; text-transform: uppercase; padding: 4px 7px; border-radius: 5px; background: var(--bluebg); color: var(--bluetx);">FE {{ wt.port }}</span>
+                <sc-for list="{{ wt.extras }}" as="ex" hint-placeholder-count="2">
+                  <span style="white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; font-weight: 600; text-transform: uppercase; padding: 4px 7px; border-radius: 5px; background: var(--neubg); color: var(--neutx);">{{ ex.k }} {{ ex.v }}</span>
+                </sc-for>
+              </div>
+              <div style="padding: 4px 11px 9px; font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ wt.path }}</div>
+              <div style="border-top: 1px solid var(--insetb); padding: 7px 10px; display: flex; gap: 6px; align-items: center;">
+                <sc-if value="{{ wt.notConfirming }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ wt.open }}" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--btntx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; cursor: pointer;" style-hover="color: var(--txt); border-color: var(--txt3);">↗ Open</button>
+                  <button onClick="{{ wt.editor }}" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--btntx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; cursor: pointer;" style-hover="color: var(--txt); border-color: var(--txt3);">Editor</button>
+                  <sc-if value="{{ wt.isRunning }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ wt.stopStack }}" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--btntx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; cursor: pointer;" style-hover="color: var(--redtx); border-color: var(--redtx);">■ Stop</button>
+                  </sc-if>
+                  <sc-if value="{{ wt.isStopped }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ wt.startStack }}" style="display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--greentx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; cursor: pointer;" style-hover="border-color: var(--greentx); background: var(--greenbg);">▶ Start</button>
+                  </sc-if>
+                  <span style="flex: 1;"></span>
+                  <button onClick="{{ wt.askTear }}" style="background: transparent; border: none; color: var(--redtx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 6px; border-radius: 6px; cursor: pointer;" style-hover="background: var(--redbg);">Tear down</button>
+                </sc-if>
+                <sc-if value="{{ wt.confirming }}" hint-placeholder-val="{{ false }}">
+                  <input placeholder="type TEARDOWN" value="{{ confirmText }}" onChange="{{ setConfirmText }}" onClick="{{ eatClick }}" onKeyDown="{{ wt.confirmKey }}" autoFocus="{{ true }}" spellCheck="{{ false }}" style="flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: .04em; color: var(--redtx); background: var(--redbg); border: 1px solid var(--redtx); border-radius: 6px; padding: 3px 8px; outline: none;"></input>
+                  <button onClick="{{ wt.doTear }}" disabled="{{ confirmLocked }}" style="{{ tearBtnStyle }}">Tear down</button>
+                  <button onClick="{{ wt.cancelTear }}" style="background: transparent; border: 1px solid var(--btnb); color: var(--btntx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 3px 9px; border-radius: 6px; cursor: pointer;" style-hover="color: var(--txt);">Cancel</button>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </sc-for>
+      </sc-for>
+    </sc-if>
+
+    <!-- empty state -->
+    <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 40px 28px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;">
+        <div style="font-size: 12.5px; color: var(--txt3);">No dev-server worktrees found.</div>
+        <div style="font-size: 11.5px; color: var(--faint); max-width: 250px;">Worktrees without a dev port in <span style="font-family: ui-monospace, Menlo, monospace;">.env</span> are skipped.</div>
+      </div>
+    </sc-if>
+
+    <!-- config missing state -->
+    <sc-if value="{{ showNoConfig }}" hint-placeholder-val="{{ false }}">
+      <div style="padding: 38px 28px 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+        <div style="font-size: 13px; font-weight: 500; color: var(--txt2);">Set up Worktree Menubar</div>
+        <div style="font-size: 11.5px; color: var(--txt3); max-width: 260px; line-height: 1.5;">Point it at your repos to see which branch is running on which localhost.</div>
+        <span style="font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: var(--neutx); background: var(--neubg); padding: 4px 8px; border-radius: 5px;">~/.config/worktree-menubar.json</span>
+        <button onClick="{{ createConfig }}" style="margin-top: 4px; background: transparent; border: 1px solid var(--btnb); border-radius: 6px; color: var(--btntx); font-size: 11px; font-weight: 500; font-family: inherit; padding: 4px 11px; cursor: pointer;" style-hover="color: var(--txt); border-color: var(--txt3);">Create config</button>
+      </div>
+    </sc-if>
+
+    <!-- footer -->
+    <div style="display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--hair); padding: 8px 8px 10px; margin-top: 6px;">
+      <span style="{{ footDotStyle }}"></span>
+      <span style="font-size: 11px; color: var(--txt3); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ footText }}</span>
+      <span style="font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: var(--faint);">⌘R</span>
+      <span style="color: var(--faint); font-size: 11px;">·</span>
+      <span onClick="{{ refresh }}" style="font-size: 11px; font-weight: 500; color: var(--txt2); cursor: pointer;" style-hover="color: var(--txt);">Refresh</span>
+      <span onClick="{{ openSettings }}" style="font-size: 11px; font-weight: 500; color: var(--txt2); cursor: pointer;" style-hover="color: var(--txt);">Settings</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SETTINGS WINDOW ============ -->
+  <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Settings" style="width: 480px; background: var(--win); border: 1px solid var(--winb); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px;">
+      <span onClick="{{ closeSettings }}" title="Close" style="width: 12px; height: 12px; border-radius: 99px; background: #ff5f57; cursor: pointer;"></span>
+      <span style="width: 12px; height: 12px; border-radius: 99px; background: var(--neubg);"></span>
+      <span style="width: 12px; height: 12px; border-radius: 99px; background: var(--neubg);"></span>
+      <span style="margin-left: 8px; font-size: 13px; font-weight: 600; color: var(--txt);">Worktree Menubar Settings</span>
+    </div>
+    <div style="padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 20px; max-height: 560px; overflow: auto;">
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--txt);">Repos</div>
+        <div style="font-size: 11.5px; color: var(--txt3); line-height: 1.5;">Each repo's worktrees are scanned for a dev port; those without one are skipped.</div>
+        <sc-for list="{{ settingsRepos }}" as="r" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--field); border: 1px solid var(--fieldb); border-radius: 8px; padding: 7px 11px;">
+            <span style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt);">{{ r.path }}</span>
+            <span onClick="{{ r.remove }}" style="color: var(--faint); font-size: 13px; cursor: pointer; padding: 0 2px;" style-hover="color: var(--txt);">×</span>
+          </div>
+        </sc-for>
+        <div style="display: flex; gap: 8px;">
+          <input placeholder="/path/to/repo" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 8px; padding: 7px 11px; outline: none;"></input>
+          <button onClick="{{ mockAdd }}" style="background: transparent; border: 1px solid var(--btnb); border-radius: 7px; color: var(--btntx); font-size: 12px; font-weight: 500; font-family: inherit; padding: 6px 14px; cursor: pointer;" style-hover="color: var(--txt); border-color: var(--txt3);">Add</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--txt);">Ports &amp; URL</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 150px; font-size: 12px; color: var(--txt2);">Dev port env key</span>
+          <input defaultValue="FE_PORT" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 150px; font-size: 12px; color: var(--txt2);">Extra port keys</span>
+          <input defaultValue="API_PORT, WS_PORT, DB_PORT" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 150px; font-size: 12px; color: var(--txt2);">URL template</span>
+          <input defaultValue="http://localhost:{port}/#/login" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 150px; font-size: 12px; color: var(--txt2);">Compose project key</span>
+          <input defaultValue="COMPOSE_PROJECT_NAME" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--txt);">Editor</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 150px; font-size: 12px; color: var(--txt2);">Open in editor with</span>
+          <input defaultValue="code" style="flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--txt2); cursor: pointer;">
+          <input type="checkbox" style="accent-color: #0a84ff; width: 14px; height: 14px;"></input>
+          Include the main checkout
+        </label>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--txt);">General</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 12px; color: var(--txt2);">Appearance</span>
+          <div style="display: flex; background: var(--seg); border-radius: 7px; padding: 2px;">
+            <span onClick="{{ setModeSystem }}" style="{{ segSystemStyle }}">System</span>
+            <span onClick="{{ setModeLight }}" style="{{ segLightStyle }}">Light</span>
+            <span onClick="{{ setModeDark }}" style="{{ segDarkStyle }}">Dark</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 12px; color: var(--txt2);">Refresh every</span>
+          <input defaultValue="10" style="width: 52px; text-align: right; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--txt); background: var(--field); border: 1px solid var(--fieldb); border-radius: 7px; padding: 6px 10px; outline: none;"></input>
+          <span style="font-size: 12px; color: var(--txt3);">seconds</span>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--txt2); cursor: pointer;">
+          <input type="checkbox" defaultChecked="{{ true }}" style="accent-color: #0a84ff; width: 14px; height: 14px;"></input>
+          Show running count in the menu bar
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--txt2); cursor: pointer;">
+          <input type="checkbox" style="accent-color: #0a84ff; width: 14px; height: 14px;"></input>
+          Launch at login
+        </label>
+      </div>
+
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- toast -->
+  <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: rgba(20,20,24,.92); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 8px; white-space: nowrap; z-index: 10;">{{ toast }}</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;theme&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;dark&quot;, &quot;light&quot;], &quot;default&quot;: &quot;dark&quot;, &quot;tsType&quot;: &quot;'dark' | 'light'&quot;, &quot;section&quot;: &quot;Appearance&quot; },
+  &quot;scenario&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;normal&quot;, &quot;empty&quot;, &quot;no-config&quot;, &quot;docker-off&quot;], &quot;default&quot;: &quot;normal&quot;, &quot;tsType&quot;: &quot;'normal' | 'empty' | 'no-config' | 'docker-off'&quot;, &quot;section&quot;: &quot;States&quot; }
+}">
+class Component extends DCLogic {
+  state = {
+    view: 'popover',
+    themeMode: 'system',
+    expanded: null,
+    hovered: null,
+    confirm: null,
+    confirmText: '',
+    toast: null,
+    ago: 4,
+    statuses: {
+      'mdw-214': 'running',
+      'mdw-231': 'running',
+      'mdw-198': 'stopped',
+      'ltn-87': 'running',
+      'ltn-92': 'stopped'
+    }
+  };
+
+  componentDidMount() {
+    this._tick = setInterval(() => this.setState(s => ({ ago: s.ago + 1 })), 1000);
+    this._hash = () => this.forceUpdate();
+    window.addEventListener('hashchange', this._hash);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+    clearTimeout(this._toastT);
+    window.removeEventListener('hashchange', this._hash);
+  }
+
+  repos() {
+    return [
+      { name: 'meadow', hue: 210, worktrees: [
+        { id: 'mdw-214', label: 'MDW-214', branch: 'feature/MDW-214-checkout-totals', port: 9002,
+          extras: [{ k: 'api', v: 3004 }, { k: 'ws', v: 8084 }, { k: 'db', v: 5436 }],
+          path: '~/dev/meadow-worktrees/MDW-214' },
+        { id: 'mdw-231', label: 'MDW-231', branch: 'MDW-231/yarn4-transitive-hardening', port: 9003,
+          extras: [{ k: 'api', v: 3005 }, { k: 'ws', v: 8085 }, { k: 'db', v: 5437 }],
+          path: '~/dev/meadow-worktrees/MDW-231' },
+        { id: 'mdw-198', label: 'MDW-198', branch: 'MDW-198/fix-login-redirect-loop', port: 9004,
+          extras: [{ k: 'api', v: 3006 }, { k: 'ws', v: 8086 }, { k: 'db', v: 5438 }],
+          path: '~/dev/meadow-worktrees/MDW-198' }
+      ]},
+      { name: 'lantern', hue: 28, worktrees: [
+        { id: 'ltn-87', label: 'LTN-87', branch: 'ltn-87/sso-settings-page', port: 9101,
+          extras: [{ k: 'api', v: 3101 }, { k: 'db', v: 5501 }],
+          path: '~/dev/lantern-worktrees/LTN-87' },
+        { id: 'ltn-92', label: 'LTN-92', branch: 'ltn-92/audit-log-export', port: 9102,
+          extras: [{ k: 'api', v: 3102 }, { k: 'db', v: 5502 }],
+          path: '~/dev/lantern-worktrees/LTN-92' }
+      ]}
+    ];
+  }
+
+  flash(msg) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: msg });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 1900);
+  }
+
+  setStatus(id, st) {
+    this.setState(s => ({ statuses: Object.assign({}, s.statuses, { [id]: st }) }));
+  }
+
+  startStack(id, label) {
+    this.setStatus(id, 'starting');
+    setTimeout(() => { this.setStatus(id, 'running'); this.flash(label + ' is up'); }, 1400);
+  }
+
+  stopStack(id, label) {
+    this.setStatus(id, 'stopping');
+    setTimeout(() => { this.setStatus(id, 'stopped'); this.flash(label + ' stopped'); }, 1000);
+  }
+
+  doTear(w) {
+    if (this.state.confirmText.trim() !== 'TEARDOWN') return;
+    this.setStatus(w.id, 'stopped');
+    this.setState({ confirm: null, confirmText: '' });
+    this.flash('Tore down ' + w.label + ' — containers & volumes removed');
+  }
+
+  renderVals() {
+    const hp = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+    const scenario = hp.get('scenario') ?? this.props.scenario ?? 'normal';
+    const propTheme = hp.get('theme') ?? this.props.theme ?? 'dark';
+    const theme = this.state.themeMode === 'system' ? propTheme : this.state.themeMode;
+    const dockerOff = scenario === 'docker-off';
+    const mono = 'ui-monospace, Menlo, monospace';
+
+    let run = 0, total = 0;
+    const groups = this.repos().map(repo => {
+      const rows = repo.worktrees.map(w => {
+        const raw = this.state.statuses[w.id];
+        const status = dockerOff ? 'stopped' : raw;
+        const isRunning = status === 'running';
+        const isStopped = status === 'stopped';
+        const isTransition = status === 'starting' || status === 'stopping';
+        total += 1; if (isRunning) run += 1;
+        const hovered = this.state.hovered === w.id;
+        const expanded = this.state.expanded === w.id;
+
+        const dotStyle = { width: '8px', height: '8px', borderRadius: '99px', flexShrink: 0, boxSizing: 'border-box' };
+        if (isRunning) dotStyle.background = 'var(--green)';
+        else if (isTransition) { dotStyle.background = 'var(--amber)'; dotStyle.animation = 'wt-pulse 1.1s ease-in-out infinite'; }
+        else dotStyle.border = '2px solid var(--faint)';
+
+        const portStyle = {
+          fontFamily: mono, fontSize: '12px', fontWeight: 600,
+          padding: '4px 7px', borderRadius: '6px', minWidth: '52px', textAlign: 'center',
+          flexShrink: 0, whiteSpace: 'nowrap', letterSpacing: '.02em'
+        };
+        if (isRunning) { portStyle.background = 'var(--bluebg)'; portStyle.color = 'var(--bluetx)'; }
+        else if (isTransition) { portStyle.background = 'var(--amberbg)'; portStyle.color = 'var(--ambertx)'; }
+        else { portStyle.background = 'var(--neubg)'; portStyle.color = 'var(--neutx)'; }
+
+        return {
+          id: w.id, label: w.label, branch: w.branch, port: w.port, extras: w.extras, path: w.path,
+          isRunning, isStopped, isExpanded: expanded,
+          showTransition: isTransition,
+          transitionLabel: status === 'starting' ? 'starting…' : 'stopping…',
+          portStyle,
+          showStart: isStopped && !expanded,
+          confirming: this.state.confirm === w.id,
+          notConfirming: this.state.confirm !== w.id,
+          rowStyle: {
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px',
+            borderRadius: '8px', cursor: 'pointer', transition: 'background .12s',
+            background: (hovered || expanded) ? 'var(--hov)' : 'transparent',
+            opacity: isStopped ? .75 : 1
+          },
+          dotStyle,
+          chevStyle: {
+            width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0,
+            color: (hovered || expanded) ? 'var(--txt2)' : 'var(--faint)',
+            transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s'
+          },
+          open: (e) => {
+            if (e) e.stopPropagation();
+            if (isStopped) { this.setState({ expanded: expanded ? null : w.id, confirm: null }); return; }
+            this.flash('Opened localhost:' + w.port + ' ↗');
+          },
+          enter: () => this.setState({ hovered: w.id }),
+          leave: () => this.setState({ hovered: null }),
+          toggle: (e) => { e.stopPropagation(); this.setState({ expanded: expanded ? null : w.id, confirm: null }); },
+          editor: (e) => { e.stopPropagation(); this.flash('Opening ' + w.label + ' in editor…'); },
+          startStack: (e) => { e.stopPropagation(); this.startStack(w.id, w.label); },
+          stopStack: (e) => { e.stopPropagation(); this.stopStack(w.id, w.label); },
+          askTear: (e) => { e.stopPropagation(); this.setState({ confirm: w.id, confirmText: '' }); },
+          cancelTear: (e) => { e.stopPropagation(); this.setState({ confirm: null, confirmText: '' }); },
+          confirmKey: (e) => {
+            if (e.key === 'Enter' && this.state.confirmText.trim() === 'TEARDOWN') this.doTear(w);
+            if (e.key === 'Escape') this.setState({ confirm: null, confirmText: '' });
+          },
+          doTear: (e) => { if (e) e.stopPropagation(); this.doTear(w); }
+        };
+      });
+      const rTotal = rows.length;
+      const rRun = rows.filter(r => r.isRunning).length;
+      return {
+        name: repo.name,
+        count: rRun + '/' + rTotal,
+        rows,
+        headStyle: {
+          fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
+          color: 'color-mix(in oklab, var(--txt3) 45%, hsl(' + repo.hue + ' 75% 58%))'
+        }
+      };
+    });
+
+    const footDotStyle = { width: '6px', height: '6px', borderRadius: '99px', flexShrink: 0, boxSizing: 'border-box' };
+    let footText;
+    if (dockerOff) {
+      footText = 'Docker not running — stacks shown as stopped';
+      footDotStyle.background = 'var(--amber)';
+    } else if (scenario === 'no-config') {
+      footText = 'No config';
+      footDotStyle.border = '2px solid var(--faint)';
+    } else {
+      footText = run + ' / ' + total + ' running · refreshed ' + this.state.ago + 's ago';
+      if (run > 0) footDotStyle.background = 'var(--green)';
+      else footDotStyle.border = '2px solid var(--faint)';
+    }
+
+    const segBase = (active) => ({
+      fontSize: '12px', padding: '3px 12px', borderRadius: '5px', cursor: 'pointer',
+      color: active ? 'var(--txt)' : 'var(--txt2)',
+      fontWeight: active ? 500 : 400,
+      background: active ? 'var(--segact)' : 'transparent',
+      boxShadow: active ? '0 1px 2px rgba(0,0,0,.18)' : 'none'
+    });
+    const mode = this.state.themeMode;
+
+    return {
+      theme,
+      isPopover: this.state.view === 'popover',
+      isSettings: this.state.view === 'settings',
+      groups,
+      showList: scenario === 'normal' || dockerOff,
+      showEmpty: scenario === 'empty',
+      showNoConfig: scenario === 'no-config',
+      footText,
+      footDotStyle,
+      toast: this.state.toast,
+      showToast: !!this.state.toast,
+      confirmText: this.state.confirmText,
+      setConfirmText: (e) => this.setState({ confirmText: e.target.value }),
+      eatClick: (e) => e.stopPropagation(),
+      confirmLocked: this.state.confirmText.trim() !== 'TEARDOWN',
+      tearBtnStyle: this.state.confirmText.trim() === 'TEARDOWN'
+        ? { background: 'var(--redbg)', border: '1px solid var(--redtx)', color: 'var(--redtx)', fontSize: '11px', fontWeight: 500, fontFamily: 'inherit', padding: '3px 9px', borderRadius: '6px', cursor: 'pointer' }
+        : { background: 'transparent', border: '1px solid var(--btnb)', color: 'var(--faint)', fontSize: '11px', fontWeight: 500, fontFamily: 'inherit', padding: '3px 9px', borderRadius: '6px', cursor: 'not-allowed', opacity: .6 },
+      refresh: () => { this.setState({ ago: 0 }); },
+      openSettings: () => this.setState({ view: 'settings' }),
+      closeSettings: () => this.setState({ view: 'popover' }),
+      createConfig: () => this.flash('Created ~/.config/worktree-menubar.json'),
+      settingsRepos: [
+        { path: '~/dev/meadow', remove: () => this.flash('Removed ~/dev/meadow (mock)') },
+        { path: '~/dev/lantern', remove: () => this.flash('Removed ~/dev/lantern (mock)') }
+      ],
+      mockAdd: () => this.flash('Added repo (mock)'),
+      setModeSystem: () => this.setState({ themeMode: 'system' }),
+      setModeLight: () => this.setState({ themeMode: 'light' }),
+      setModeDark: () => this.setState({ themeMode: 'dark' }),
+      segSystemStyle: segBase(mode === 'system'),
+      segLightStyle: segBase(mode === 'light'),
+      segDarkStyle: segBase(mode === 'dark')
+    };
+  }
+}
+
+</script>
+</body>
+</html>
