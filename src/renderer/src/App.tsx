@@ -12,12 +12,13 @@ import type { WorktreeSnapshot } from '../../shared/types'
 import { api } from './lib/api'
 import { FooterBar } from './components/FooterBar'
 import { WorktreeList } from './components/WorktreeList'
-import type { RowActions } from './components/WorktreeRow'
+import type { RowActions, ConfirmKind } from './components/WorktreeRow'
 
 export default function App(): JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [confirmKind, setConfirmKind] = useState<ConfirmKind>('down')
   const [confirmText, setConfirmText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -104,22 +105,24 @@ export default function App(): JSX.Element {
       },
       start: (wt: WorktreeSnapshot) => void api.startStack(wt.id),
       stop: (wt: WorktreeSnapshot) => void api.stopStack(wt.id),
-      askTeardown: (id: string) => {
+      askConfirm: (id: string, kind: ConfirmKind) => {
         setConfirmingId(id)
+        setConfirmKind(kind)
         setConfirmText('')
       },
-      cancelTeardown: () => {
+      cancelConfirm: () => {
         setConfirmingId(null)
         setConfirmText('')
       },
-      confirmTeardown: (wt: WorktreeSnapshot) => {
-        void api.teardownStack(wt.id)
+      confirm: (wt: WorktreeSnapshot) => {
+        if (confirmKind === 'destroy') void api.destroyWorktree(wt.id)
+        else void api.downStack(wt.id)
         setConfirmingId(null)
         setConfirmText('')
       },
       setConfirmText
     }),
-    [toggleExpand, showToast]
+    [toggleExpand, showToast, confirmKind]
   )
 
   if (!state) return <div className="popover" />
@@ -133,6 +136,7 @@ export default function App(): JSX.Element {
           worktrees={state.worktrees}
           expandedId={expandedId}
           confirmingId={confirmingId}
+          confirmKind={confirmKind}
           confirmText={confirmText}
           actions={actions}
         />

@@ -56,12 +56,21 @@ export class MockBackend implements StackOps {
     }))
   }
 
-  teardown(id: string): void {
+  down(id: string): void {
     this.transition(id, 'stopping', 'stopped', 1200, (label) => ({
       id,
-      kind: 'teardown',
+      kind: 'down',
       ok: true,
-      message: `Tore down ${label} — containers & volumes removed`
+      message: `Brought down ${label} — containers & volumes removed`
+    }))
+  }
+
+  destroy(id: string): void {
+    this.transition(id, 'stopping', 'stopped', 1200, (label) => ({
+      id,
+      kind: 'destroy',
+      ok: true,
+      message: `Destroyed ${label} — stack, volumes & worktree removed`
     }))
   }
 

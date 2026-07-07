@@ -1,7 +1,7 @@
 import type { JSX } from 'react'
 import { repoTint } from '../../../shared/present'
 import type { WorktreeSnapshot } from '../../../shared/types'
-import { WorktreeRow, type RowActions } from './WorktreeRow'
+import { WorktreeRow, type RowActions, type ConfirmKind } from './WorktreeRow'
 
 interface RepoGroup {
   name: string
@@ -28,12 +28,14 @@ export function WorktreeList({
   worktrees,
   expandedId,
   confirmingId,
+  confirmKind,
   confirmText,
   actions
 }: {
   worktrees: WorktreeSnapshot[]
   expandedId: string | null
   confirmingId: string | null
+  confirmKind: ConfirmKind
   confirmText: string
   actions: RowActions
 }): JSX.Element {
@@ -59,6 +61,7 @@ export function WorktreeList({
                   wt={wt}
                   expanded={expandedId === wt.id}
                   confirming={confirmingId === wt.id}
+                  confirmKind={confirmKind}
                   confirmText={confirmText}
                   actions={actions}
                 />

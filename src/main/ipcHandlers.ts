@@ -8,7 +8,8 @@ import type { ConfigSource } from './config'
 export interface StackOps {
   start(id: WorktreeId): void
   stop(id: WorktreeId): void
-  teardown(id: WorktreeId): void
+  down(id: WorktreeId): void
+  destroy(id: WorktreeId): void
   /** absolute path for the editor command (mock returns null → no-op) */
   editorPath(id: WorktreeId): string | null
 }
@@ -53,8 +54,13 @@ export function registerIpcHandlers(deps: {
     deps.refresh()
   })
 
-  ipcMain.handle(CHANNELS.teardownStack, (_e, id: WorktreeId) => {
-    ops.teardown(id)
+  ipcMain.handle(CHANNELS.downStack, (_e, id: WorktreeId) => {
+    ops.down(id)
+    deps.refresh()
+  })
+
+  ipcMain.handle(CHANNELS.destroyWorktree, (_e, id: WorktreeId) => {
+    ops.destroy(id)
     deps.refresh()
   })
 

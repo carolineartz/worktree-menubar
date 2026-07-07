@@ -24,8 +24,10 @@ export interface Invokers {
   startStack(id: WorktreeId): Promise<void>
   /** docker compose stop */
   stopStack(id: WorktreeId): Promise<void>
-  /** docker compose down -v — removes containers + volumes, never the worktree */
-  teardownStack(id: WorktreeId): Promise<void>
+  /** docker compose down -v — removes containers + volumes, keeps the worktree */
+  downStack(id: WorktreeId): Promise<void>
+  /** full cleanup: down -v, then `git worktree remove` + prune (keeps the branch) */
+  destroyWorktree(id: WorktreeId): Promise<void>
   /** write a default ~/.config/worktree-menubar.json */
   createConfig(): Promise<void>
   getConfig(): Promise<Config>
@@ -49,7 +51,8 @@ export const CHANNELS = {
   openEditor: 'wt:openEditor',
   startStack: 'wt:start',
   stopStack: 'wt:stop',
-  teardownStack: 'wt:teardown',
+  downStack: 'wt:down',
+  destroyWorktree: 'wt:destroy',
   createConfig: 'config:create',
   getConfig: 'config:get',
   setConfig: 'config:set',

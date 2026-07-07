@@ -21,8 +21,8 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 
 - **Click a row** → expands it (worktree path, port chips, action strip). **⌘-click** a running row opens its dev URL directly.
 - Each running row has an **open-in-browser** button (left of the chevron); stopped rows show **▶ Start** (`docker compose up -d`).
-- **Expanded panel** → `↗ Open` · `Editor` · `■ Stop` / `▶ Start` · **Tear down**.
-- **Tear down** requires typing `TEARDOWN` — it runs `docker compose down -v` (removes containers **and volumes**; it never touches the worktree or branch).
+- **Expanded panel** → `↗ Open` · `Editor` · `■ Stop` / `▶ Start` · **Down**, plus a red **🗑 Destroy** aligned right.
+- **Down** (`docker compose down -v` — containers **and volumes**, keeps the worktree) requires typing `DOWN`. **Destroy** (full cleanup: `down -v` → `git worktree remove` → prune, **keeps the branch**) requires typing `DESTROY`; it's non-force, so a worktree with uncommitted changes is kept rather than discarded.
 - Tray shows `running/total` (e.g. `3/5`); in the footer `⌘R` refreshes and the gear opens Settings (right-click the tray for Refresh / Settings / Quit).
 
 ## Config

@@ -117,9 +117,13 @@ app.whenReady().then(() => {
       const s = lastScan.get(id)
       if (s) docker.stop(id, s.absPath, s.label)
     },
-    teardown: (id) => {
+    down: (id) => {
       const s = lastScan.get(id)
-      if (s) docker.teardown(id, s.absPath, s.label)
+      if (s) docker.down(id, s.absPath, s.label)
+    },
+    destroy: (id) => {
+      const s = lastScan.get(id)
+      if (s) docker.destroy(id, s.absPath, s.repoRoot, s.label)
     },
     editorPath: (id) => lastScan.get(id)?.absPath ?? null
   }

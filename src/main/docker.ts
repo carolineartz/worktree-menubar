@@ -12,7 +12,7 @@ export interface ComposeSnapshot {
 }
 
 /**
- * Talks to `docker compose`. Start/stop/teardown are tracked as pending ops
+ * Talks to `docker compose`. Start/stop/down/destroy are tracked as pending ops
  * so rows can show the optimistic starting…/stopping… state while the
  * command runs; the poll after completion confirms the real status.
  */
@@ -56,16 +56,52 @@ export class DockerService {
   }
 
   /** Removes containers + volumes. Never touches the worktree or branch. */
-  teardown(id: string, dir: string, label: string): void {
+  down(id: string, dir: string, label: string): void {
     this.exec(
       id,
-      'teardown',
+      'down',
       'stopping',
       ['down', '-v'],
       dir,
-      `Tore down ${label} — containers & volumes removed`,
-      `${label} tear-down failed`
+      `Brought down ${label} — containers & volumes removed`,
+      `${label} down failed`
     )
+  }
+
+  /** Full cleanup: `down -v`, then `git worktree remove` + prune. Keeps the branch. */
+  destroy(id: string, dir: string, repoRoot: string, label: string): void {
+    if (this.pending.has(id)) return
+    this.pending.set(id, 'stopping')
+    execFile('docker', ['compose', 'down', '-v'], { cwd: dir, timeout: 180_000 }, (dErr) => {
+      if (dErr) {
+        this.pending.delete(id)
+        this.onOpDone({ id, kind: 'destroy', ok: false, message: `${label}: docker down failed` })
+        return
+      }
+      // Non-force: if the worktree has uncommitted changes, keep it and say so
+      // rather than silently discarding work.
+      execFile('git', ['-C', repoRoot, 'worktree', 'remove', dir], { timeout: 30_000 }, (gErr) => {
+        if (gErr) {
+          this.pending.delete(id)
+          this.onOpDone({
+            id,
+            kind: 'destroy',
+            ok: false,
+            message: `${label}: stack removed, but worktree kept (uncommitted changes?) — remove it manually`
+          })
+          return
+        }
+        execFile('git', ['-C', repoRoot, 'worktree', 'prune'], { timeout: 15_000 }, () => {
+          this.pending.delete(id)
+          this.onOpDone({
+            id,
+            kind: 'destroy',
+            ok: true,
+            message: `Destroyed ${label} — stack, volumes & worktree removed`
+          })
+        })
+      })
+    })
   }
 
   private exec(

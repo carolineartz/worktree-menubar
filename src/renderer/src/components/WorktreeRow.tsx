@@ -1,6 +1,9 @@
 import type { JSX, MouseEvent } from 'react'
 import type { WorktreeSnapshot } from '../../../shared/types'
-import { ChevronDown, OpenExternal } from './icons'
+import { ChevronDown, OpenExternal, Trash } from './icons'
+
+/** `down` = docker compose down -v; `destroy` = down -v + remove worktree + prune. */
+export type ConfirmKind = 'down' | 'destroy'
 
 export interface RowActions {
   /** primary: toggle expand; ⌘-click opens the dev URL on running rows */
@@ -10,9 +13,10 @@ export interface RowActions {
   openEditor(wt: WorktreeSnapshot): void
   start(wt: WorktreeSnapshot): void
   stop(wt: WorktreeSnapshot): void
-  askTeardown(id: string): void
-  cancelTeardown(): void
-  confirmTeardown(wt: WorktreeSnapshot): void
+  /** open the typed confirm for a destructive op */
+  askConfirm(id: string, kind: ConfirmKind): void
+  cancelConfirm(): void
+  confirm(wt: WorktreeSnapshot): void
   setConfirmText(text: string): void
 }
 
@@ -20,18 +24,23 @@ export function WorktreeRow({
   wt,
   expanded,
   confirming,
+  confirmKind,
   confirmText,
   actions
 }: {
   wt: WorktreeSnapshot
   expanded: boolean
   confirming: boolean
+  confirmKind: ConfirmKind
   confirmText: string
   actions: RowActions
 }): JSX.Element {
   const isTransition = wt.status === 'starting' || wt.status === 'stopping'
   const isStopped = wt.status === 'stopped'
   const tone = isTransition ? 'transition' : isStopped ? 'stopped' : 'running'
+  const confirmWord = confirmKind === 'destroy' ? 'DESTROY' : 'DOWN'
+  const confirmLabel = confirmKind === 'destroy' ? 'Destroy' : 'Down'
+  const confirmMod = confirmKind === 'down' ? ' neutral' : ''
 
   return (
     <>
@@ -140,52 +149,64 @@ export function WorktreeRow({
                     ▶ Start
                   </button>
                 )}
-                <span className="spacer" />
                 <button
-                  className="tear-ask"
+                  className="ibtn"
+                  title="docker compose down -v (removes containers + volumes; keeps the worktree)"
                   onClick={(e) => {
                     e.stopPropagation()
-                    actions.askTeardown(wt.id)
+                    actions.askConfirm(wt.id, 'down')
                   }}
                 >
-                  Tear down
+                  Down
+                </button>
+                <span className="spacer" />
+                <button
+                  className="destroy-btn"
+                  title="Destroy — down -v, then remove the worktree & prune (keeps the branch)"
+                  aria-label="Destroy worktree"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    actions.askConfirm(wt.id, 'destroy')
+                  }}
+                >
+                  <Trash />
                 </button>
               </>
             ) : (
               <>
                 <input
-                  className="tear-input"
-                  placeholder="type TEARDOWN"
+                  className={`tear-input${confirmMod}`}
+                  placeholder={`type ${confirmWord}`}
                   value={confirmText}
                   autoFocus
                   spellCheck={false}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => actions.setConfirmText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && confirmText.trim() === 'TEARDOWN') {
-                      actions.confirmTeardown(wt)
+                    if (e.key === 'Enter' && confirmText.trim() === confirmWord) {
+                      actions.confirm(wt)
                     }
                     if (e.key === 'Escape') {
                       e.stopPropagation() // Esc here cancels the confirm, not the popover
-                      actions.cancelTeardown()
+                      actions.cancelConfirm()
                     }
                   }}
                 />
                 <button
-                  className="tear-do"
-                  disabled={confirmText.trim() !== 'TEARDOWN'}
+                  className={`tear-do${confirmMod}`}
+                  disabled={confirmText.trim() !== confirmWord}
                   onClick={(e) => {
                     e.stopPropagation()
-                    actions.confirmTeardown(wt)
+                    actions.confirm(wt)
                   }}
                 >
-                  Tear down
+                  {confirmLabel}
                 </button>
                 <button
                   className="tear-cancel"
                   onClick={(e) => {
                     e.stopPropagation()
-                    actions.cancelTeardown()
+                    actions.cancelConfirm()
                   }}
                 >
                   Cancel

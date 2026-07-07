@@ -67,10 +67,10 @@ export const DEFAULT_CONFIG: Config = {
   launchAtLogin: false
 }
 
-/** Result of a start/stop/teardown command, pushed to the renderer for toasts. */
+/** Result of a start/stop/down/destroy command, pushed to the renderer for toasts. */
 export interface OpResult {
   id: WorktreeId
-  kind: 'start' | 'stop' | 'teardown'
+  kind: 'start' | 'stop' | 'down' | 'destroy'
   ok: boolean
   /** toast text, e.g. "MDW-214 is up" */
   message: string

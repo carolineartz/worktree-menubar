@@ -13,15 +13,15 @@ interface Shot {
 }
 
 const EXPAND_FIRST = `document.querySelector('.chev')?.click()`
-const TEARDOWN_CONFIRM = `
+const DESTROY_CONFIRM = `
   document.querySelector('.chev')?.click();
-  setTimeout(() => document.querySelector('.tear-ask')?.click(), 120);
+  setTimeout(() => document.querySelector('.destroy-btn')?.click(), 120);
 `
 
 const SHOTS: Shot[] = [
   { name: '01-popover-dark', theme: 'dark', scenario: 'normal' },
   { name: '02-row-expanded-dark', theme: 'dark', scenario: 'normal', setup: EXPAND_FIRST },
-  { name: '03-teardown-confirm-dark', theme: 'dark', scenario: 'normal', setup: TEARDOWN_CONFIRM },
+  { name: '03-destroy-confirm-dark', theme: 'dark', scenario: 'normal', setup: DESTROY_CONFIRM },
   { name: '04-popover-light', theme: 'light', scenario: 'normal' },
   { name: '07-empty-dark', theme: 'dark', scenario: 'empty' },
   { name: '08-no-config-dark', theme: 'dark', scenario: 'no-config' },

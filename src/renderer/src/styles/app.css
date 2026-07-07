@@ -442,6 +442,45 @@ body {
   color: var(--txt);
 }
 
+/* Down confirm reuses the tear-* strip but stays neutral (not red) */
+.tear-input.neutral {
+  color: var(--txt);
+  background: var(--inset);
+  border-color: var(--btnb);
+}
+
+.tear-do.neutral:not(:disabled) {
+  background: transparent;
+  border-color: var(--btnb);
+  color: var(--btntx);
+}
+
+.tear-do.neutral:not(:disabled):hover {
+  color: var(--txt);
+  border-color: var(--txt3);
+}
+
+/* red trash button — the full-cleanup "Destroy", aligned right */
+.destroy-btn {
+  flex: none;
+  width: 26px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--redtx);
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.destroy-btn:hover {
+  opacity: 1;
+  background: var(--redbg);
+}
+
 /* ---- empty / setup states ---- */
 
 .empty {

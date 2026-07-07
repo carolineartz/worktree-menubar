@@ -67,12 +67,19 @@ function createMockApi(): RendererApi {
         ok: true,
         message: `${label} stopped`
       })),
-    teardownStack: async (id) =>
+    downStack: async (id) =>
       transition(id, 'stopping', 'stopped', 1200, (label) => ({
         id,
-        kind: 'teardown',
+        kind: 'down',
         ok: true,
-        message: `Tore down ${label} — containers & volumes removed`
+        message: `Brought down ${label} — containers & volumes removed`
+      })),
+    destroyWorktree: async (id) =>
+      transition(id, 'stopping', 'stopped', 1200, (label) => ({
+        id,
+        kind: 'destroy',
+        ok: true,
+        message: `Destroyed ${label} — stack, volumes & worktree removed`
       })),
     createConfig: async () => {
       state.configState = 'ok'

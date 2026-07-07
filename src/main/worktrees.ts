@@ -13,6 +13,8 @@ const run = promisify(execFile)
 export interface ScannedWorktree {
   id: string
   repo: string
+  /** absolute repo root — needed to run `git worktree remove/prune` */
+  repoRoot: string
   label: string
   branch: string
   port: number
@@ -85,6 +87,7 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
       results.push({
         id: wt.path,
         repo: repoName,
+        repoRoot: abs,
         label: ticketFrom(branch),
         branch,
         port,
