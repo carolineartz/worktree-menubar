@@ -19,11 +19,11 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 
 ## Actions
 
-- **Click a running row** → opens the dev URL (URL template + the worktree's port) in your browser.
-- **Click a stopped row** → expands it; **▶ Start** runs `docker compose up -d`.
+- **Click a row** → expands it (worktree path, port chips, action strip). **⌘-click** a running row opens its dev URL directly.
+- Each running row has an **open-in-browser** button (left of the chevron); stopped rows show **▶ Start** (`docker compose up -d`).
 - **Expanded panel** → `↗ Open` · `Editor` · `■ Stop` / `▶ Start` · **Tear down**.
 - **Tear down** requires typing `TEARDOWN` — it runs `docker compose down -v` (removes containers **and volumes**; it never touches the worktree or branch).
-- Tray icon shows `running/total` (e.g. `3/5`); right-click for Refresh / Settings / Quit.
+- Tray shows `running/total` (e.g. `3/5`); in the footer `⌘R` refreshes and the gear opens Settings (right-click the tray for Refresh / Settings / Quit).
 
 ## Config
 
@@ -48,6 +48,17 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 All of it is also editable in the Settings window:
 
 ![settings](docs/screenshots/06-settings-dark.png)
+
+## Install
+
+Grab the latest zip from [Releases](https://github.com/carolineartz/worktree-menubar/releases):
+
+```sh
+# unzip, move Worktree Menubar.app to /Applications, then (unsigned app, one time):
+xattr -cr "/Applications/Worktree Menubar.app"
+```
+
+Requires macOS (Apple Silicon) + Docker. On first launch, point `repos` at your repo roots (via Settings, or the config above).
 
 ## Development
 
