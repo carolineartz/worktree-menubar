@@ -165,7 +165,11 @@ export function WorktreeRow({
             {!confirming ? (
               <>
                 {wt.served && (
-                  <IconAction tip="Open in browser" onAct={() => actions.openUrl(wt)}>
+                  <IconAction
+                    tip={wt.status === 'running' ? 'Open in browser' : 'Open in browser — not up'}
+                    disabled={wt.status !== 'running'}
+                    onAct={() => actions.openUrl(wt)}
+                  >
                     <OpenAction />
                   </IconAction>
                 )}
