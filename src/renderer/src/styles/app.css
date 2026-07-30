@@ -106,6 +106,64 @@ body {
   background: var(--hair);
 }
 
+/* "more" — collapsed sub-list of a repo's unserved worktrees */
+.more-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 7px 10px 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.more-toggle .mchev {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint);
+  transform: rotate(-90deg);
+  transition: transform 0.15s;
+}
+
+.more-toggle .mchev.open {
+  transform: rotate(0deg);
+}
+
+.more-toggle .mlabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.more-toggle:hover .mlabel,
+.more-toggle:hover .mchev {
+  color: var(--txt3);
+}
+
+.more-toggle .mcount {
+  font:
+    600 10px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--neutx);
+  background: var(--neubg);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+.more-toggle .mrule {
+  flex: 1;
+  height: 1px;
+  background: var(--hair);
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -146,6 +204,13 @@ body {
   border: 2px solid var(--faint);
 }
 
+/* unserved ("more") worktree — no stack at all */
+.dot.bare {
+  background: transparent;
+  border: 2px dotted var(--faint);
+  opacity: 0.8;
+}
+
 /* the key scanning affordance — an aligned column of port numbers */
 .port {
   flex: none;
@@ -173,6 +238,11 @@ body {
 .port.stopped {
   background: var(--neubg);
   color: var(--neutx);
+}
+
+.port.bare {
+  background: transparent;
+  color: var(--faint);
 }
 
 .row-main {
@@ -232,6 +302,28 @@ body {
   background: var(--greenbg);
 }
 
+/* promote — the "upgrade to a served stack" action on unserved rows */
+.promote-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--btnb);
+  border-radius: 6px;
+  color: var(--bluetx);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.promote-btn:hover {
+  border-color: var(--bluetx);
+  background: var(--bluebg);
+}
+
 .visit {
   flex: none;
   width: 22px;
@@ -280,12 +372,12 @@ body {
 
 /* ---- expanded inset panel ---- */
 
+/* no overflow:hidden — the strip's hover tooltips rise above the box */
 .inset {
   margin: 4px 10px 8px 28px;
   background: var(--inset);
   border: 1px solid var(--insetb);
   border-radius: 8px;
-  overflow: hidden;
 }
 
 .inset .chips {
@@ -313,6 +405,11 @@ body {
   color: var(--bluetx);
 }
 
+/* unserved insets have no chips row — give the path the full top padding */
+.inset .wt-path:first-child {
+  padding-top: 9px;
+}
+
 .inset .wt-path {
   padding: 4px 11px 9px;
   font-family: ui-monospace, Menlo, monospace;
@@ -332,6 +429,7 @@ body {
 }
 
 .ibtn {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -343,6 +441,7 @@ body {
   font-weight: 500;
   font-family: inherit;
   padding: 3px 9px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -351,39 +450,107 @@ body {
   border-color: var(--txt3);
 }
 
-.ibtn.stop:hover {
-  color: var(--redtx);
-  border-color: var(--redtx);
+.ibtn.promote {
+  color: var(--bluetx);
 }
 
-.ibtn.start {
-  color: var(--greentx);
+.ibtn.promote:hover {
+  color: var(--bluetx);
+  border-color: var(--bluetx);
+  background: var(--bluebg);
 }
 
-.ibtn.start:hover {
-  color: var(--greentx);
-  border-color: var(--greentx);
+/* borderless strip icon action — muted at rest, action tint on hover;
+   the label lives in the tooltip */
+.iconbtn {
+  flex: none;
+  width: 26px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  /* full foreground — black in light, white in dark; anything dimmer reads as disabled */
+  color: var(--txt);
+  cursor: pointer;
+}
+
+/* hover feedback is the button background alone */
+.iconbtn:hover {
+  background: var(--hov);
+}
+
+/* not applicable right now (no PR yet, no ticket key, already running…) —
+   kept in place but unmistakably off: faint and fully desaturated. Dim the
+   glyph, not the button, so the tooltip stays readable. */
+.iconbtn:disabled,
+.iconbtn:disabled:hover {
+  color: var(--txt3);
+  background: transparent;
+  cursor: default;
+}
+
+.iconbtn:disabled svg {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+
+/* CSS tooltips — native title tooltips don't render in the frameless popover */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 24, 0.92);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.6s;
+  z-index: 40;
+}
+
+[data-tip]:hover::after {
+  opacity: 1;
+}
+
+/* right-edge buttons anchor the tip to their right so it can't clip */
+[data-tip].tip-right::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.iconbtn.start:hover {
   background: var(--greenbg);
+}
+
+.iconbtn.stop:hover {
+  background: var(--amberbg);
+}
+
+.iconbtn.destroy {
+  /* set apart from the jira/github link cluster */
+  margin-left: 10px;
+}
+
+.iconbtn.destroy:hover {
+  background: var(--redbg);
 }
 
 .spacer {
   flex: 1;
-}
-
-.tear-ask {
-  background: transparent;
-  border: none;
-  color: var(--redtx);
-  font-size: 11px;
-  font-weight: 500;
-  font-family: inherit;
-  padding: 3px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.tear-ask:hover {
-  background: var(--redbg);
 }
 
 /* typed tear-down confirm — swapped into the strip */
@@ -440,45 +607,6 @@ body {
 
 .tear-cancel:hover {
   color: var(--txt);
-}
-
-/* Down confirm reuses the tear-* strip but stays neutral (not red) */
-.tear-input.neutral {
-  color: var(--txt);
-  background: var(--inset);
-  border-color: var(--btnb);
-}
-
-.tear-do.neutral:not(:disabled) {
-  background: transparent;
-  border-color: var(--btnb);
-  color: var(--btntx);
-}
-
-.tear-do.neutral:not(:disabled):hover {
-  color: var(--txt);
-  border-color: var(--txt3);
-}
-
-/* red trash button — the full-cleanup "Destroy", aligned right */
-.destroy-btn {
-  flex: none;
-  width: 26px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--redtx);
-  cursor: pointer;
-  opacity: 0.72;
-}
-
-.destroy-btn:hover {
-  opacity: 1;
-  background: var(--redbg);
 }
 
 /* ---- empty / setup states ---- */

@@ -3,9 +3,10 @@ export type WorktreeId = string
 
 /**
  * Derived live from `docker compose ls`; 'starting'/'stopping' are optimistic
- * while an up/stop/down command is in flight.
+ * while an up/stop/down command is in flight. 'promoting' is the unserved-row
+ * equivalent: the promote command is running.
  */
-export type StackStatus = 'running' | 'starting' | 'stopping' | 'stopped'
+export type StackStatus = 'running' | 'starting' | 'stopping' | 'stopped' | 'promoting'
 
 export interface ExtraPort {
   /** chip label, e.g. "api" — rendered uppercase */
@@ -20,12 +21,20 @@ export interface WorktreeSnapshot {
   /** ticket label for the meta line, e.g. "MDW-214" */
   label: string
   branch: string
-  /** the dev-server (FE) port — worktrees without one are skipped */
-  port: number
+  /** the dev-server (FE) port — null for unserved worktrees */
+  port: number | null
   extras: ExtraPort[]
   /** display path, ~-abbreviated */
   path: string
   status: StackStatus
+  /** false = no dev port in .env — listed under "more", promotable */
+  served: boolean
+  /** jiraBaseUrl/browse/<ticket> when configured and the branch has a ticket key */
+  jiraUrl: string | null
+  /** the branch's GitHub PR (resolved via `gh`), when one exists */
+  prUrl: string | null
+  /** tooltip for the PR button, e.g. "PR #4312 · open" */
+  prLabel: string | null
 }
 
 export type ConfigState = 'ok' | 'missing' | 'error'
@@ -42,10 +51,29 @@ export interface Config {
   extraPortKeys: string[]
   /** {port} is replaced with the worktree's dev port */
   urlTemplate: string
+  /**
+   * Health-probe path on the dev port (e.g. "/api/configs"): a stack whose
+   * containers are up but that doesn't answer 2xx here shows as 'starting'
+   * instead of 'running'. Empty string disables the probe.
+   */
+  healthPath: string
   /** .env key naming the compose project; falls back to the directory name */
   composeProjectKey: string
   /** command for "Editor", invoked with the worktree path */
   editorCommand: string
+  /**
+   * Jira site root, e.g. "https://cutover.atlassian.net". When set, rows whose
+   * branch contains a ticket key (ABC-123) get a Jira link button. Empty
+   * string disables it.
+   */
+  jiraBaseUrl: string
+  /**
+   * Shell command that turns an unserved worktree into a served one
+   * ({branch} and {path} placeholders; runs with the worktree as cwd),
+   * e.g. "cutover-work {branch} --local --no-open". Empty string hides
+   * the Promote button.
+   */
+  promoteCommand: string
   includeMainCheckout: boolean
   theme: ThemePreference
   refreshSeconds: number
@@ -58,8 +86,11 @@ export const DEFAULT_CONFIG: Config = {
   devPortKey: 'FE_PORT',
   extraPortKeys: ['API_PORT', 'WS_PORT', 'DB_PORT'],
   urlTemplate: 'http://localhost:{port}/',
+  healthPath: '',
   composeProjectKey: 'COMPOSE_PROJECT_NAME',
   editorCommand: 'code',
+  jiraBaseUrl: '',
+  promoteCommand: '',
   includeMainCheckout: false,
   theme: 'system',
   refreshSeconds: 10,
@@ -67,10 +98,10 @@ export const DEFAULT_CONFIG: Config = {
   launchAtLogin: false
 }
 
-/** Result of a start/stop/down/destroy command, pushed to the renderer for toasts. */
+/** Result of a start/stop/destroy/promote command, pushed to the renderer for toasts. */
 export interface OpResult {
   id: WorktreeId
-  kind: 'start' | 'stop' | 'down' | 'destroy'
+  kind: 'start' | 'stop' | 'destroy' | 'promote'
   ok: boolean
   /** toast text, e.g. "MDW-214 is up" */
   message: string

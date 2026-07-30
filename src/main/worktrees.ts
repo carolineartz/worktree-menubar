@@ -17,11 +17,14 @@ export interface ScannedWorktree {
   repoRoot: string
   label: string
   branch: string
-  port: number
+  /** null when the worktree has no dev port (unserved) */
+  port: number | null
   extras: { key: string; port: number }[]
   path: string
   absPath: string
   composeProject: string
+  /** false = no dev port in .env — no stack to start/stop, promotable */
+  served: boolean
 }
 
 export interface GitWorktree {
@@ -55,8 +58,9 @@ export function parsePorcelain(stdout: string): GitWorktree[] {
 }
 
 /**
- * Scan each configured repo's worktrees and keep the ones with a dev port
- * in their .env. The main checkout is skipped unless config says otherwise.
+ * Scan each configured repo's worktrees. Ones with a dev port in their .env
+ * are "served" (full stack rows); the rest are kept as unserved rows for the
+ * "more" section. The main checkout is skipped unless config says otherwise.
  */
 export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> {
   const home = homedir()
@@ -74,14 +78,13 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
 
     for (const wt of parsePorcelain(stdout)) {
       if (wt.isMain && !config.includeMainCheckout) continue
-      let env: Record<string, string>
+      let env: Record<string, string> = {}
       try {
         env = parseEnv(await readFile(join(wt.path, '.env'), 'utf8'))
       } catch {
-        continue // no .env — skipped by design
+        // no .env — an unserved worktree
       }
       const port = portFrom(env, config.devPortKey)
-      if (port == null) continue
 
       const branch = wt.branch ?? basename(wt.path)
       results.push({
@@ -91,11 +94,12 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
         label: ticketFrom(branch),
         branch,
         port,
-        extras: extraPorts(env, config.extraPortKeys),
+        extras: port != null ? extraPorts(env, config.extraPortKeys) : [],
         path: tildePath(wt.path, home),
         absPath: wt.path,
         composeProject:
-          env[config.composeProjectKey]?.trim() || defaultComposeProject(basename(wt.path))
+          env[config.composeProjectKey]?.trim() || defaultComposeProject(basename(wt.path)),
+        served: port != null
       })
     }
   }

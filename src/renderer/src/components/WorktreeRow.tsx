@@ -1,9 +1,16 @@
 import type { JSX, MouseEvent } from 'react'
 import type { WorktreeSnapshot } from '../../../shared/types'
-import { ChevronDown, OpenExternal, Trash } from './icons'
-
-/** `down` = docker compose down -v; `destroy` = down -v + remove worktree + prune. */
-export type ConfirmKind = 'down' | 'destroy'
+import {
+  ChevronDown,
+  Destroy,
+  Editor,
+  GitHub,
+  Jira,
+  OpenAction,
+  OpenExternal,
+  Start,
+  StopSquare
+} from './icons'
 
 export interface RowActions {
   /** primary: toggle expand; ⌘-click opens the dev URL on running rows */
@@ -11,55 +18,93 @@ export interface RowActions {
   toggleExpand(id: string): void
   openUrl(wt: WorktreeSnapshot): void
   openEditor(wt: WorktreeSnapshot): void
+  openJira(wt: WorktreeSnapshot): void
+  openPr(wt: WorktreeSnapshot): void
   start(wt: WorktreeSnapshot): void
   stop(wt: WorktreeSnapshot): void
-  /** open the typed confirm for a destructive op */
-  askConfirm(id: string, kind: ConfirmKind): void
+  /** run the configured promote command on an unserved worktree */
+  promote(wt: WorktreeSnapshot): void
+  /** open the typed DESTROY confirm */
+  askConfirm(id: string): void
   cancelConfirm(): void
   confirm(wt: WorktreeSnapshot): void
   setConfirmText(text: string): void
+}
+
+/** Borderless icon action for the strip. Native title tooltips don't render
+ *  in the frameless popover, so the label shows via a CSS [data-tip] tooltip. */
+function IconAction({
+  tip,
+  className = 'iconbtn',
+  disabled = false,
+  onAct,
+  children
+}: {
+  tip: string
+  className?: string
+  disabled?: boolean
+  onAct: () => void
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <button
+      className={className}
+      data-tip={tip}
+      aria-label={tip}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation()
+        onAct()
+      }}
+    >
+      {children}
+    </button>
+  )
 }
 
 export function WorktreeRow({
   wt,
   expanded,
   confirming,
-  confirmKind,
   confirmText,
+  canPromote,
+  jiraEnabled,
   actions
 }: {
   wt: WorktreeSnapshot
   expanded: boolean
   confirming: boolean
-  confirmKind: ConfirmKind
   confirmText: string
+  /** a promote command is configured — unserved rows get the Promote button */
+  canPromote: boolean
+  /** a Jira base URL is configured — rows show the Jira button (dimmed without a ticket key) */
+  jiraEnabled: boolean
   actions: RowActions
 }): JSX.Element {
-  const isTransition = wt.status === 'starting' || wt.status === 'stopping'
+  const isTransition =
+    wt.status === 'starting' || wt.status === 'stopping' || wt.status === 'promoting'
   const isStopped = wt.status === 'stopped'
-  const tone = isTransition ? 'transition' : isStopped ? 'stopped' : 'running'
-  const confirmWord = confirmKind === 'destroy' ? 'DESTROY' : 'DOWN'
-  const confirmLabel = confirmKind === 'destroy' ? 'Destroy' : 'Down'
-  const confirmMod = confirmKind === 'down' ? ' neutral' : ''
+  const tone = isTransition ? 'transition' : !wt.served ? 'bare' : isStopped ? 'stopped' : 'running'
 
   return (
     <>
       <div
-        className={['row', isStopped && 'stopped', expanded && 'expanded']
+        className={['row', isStopped && wt.served && 'stopped', expanded && 'expanded']
           .filter(Boolean)
           .join(' ')}
         onClick={(e) => actions.rowClick(wt, e)}
       >
         <span className={`dot ${tone}`} />
-        <span className={`port ${tone}`}>{wt.port}</span>
+        <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
         <div className="row-main">
           <div className="branch">{wt.branch}</div>
           <div className="meta">{wt.label}</div>
         </div>
         {wt.status === 'running' && (
           <button
-            className="visit"
-            title="Open in browser (or ⌘-click the row)"
+            className="visit tip-right"
+            data-tip="Open in browser · or ⌘-click the row"
+            aria-label="Open in browser"
             onClick={(e) => {
               e.stopPropagation()
               actions.openUrl(wt)
@@ -68,12 +113,8 @@ export function WorktreeRow({
             <OpenExternal />
           </button>
         )}
-        {isTransition && (
-          <span className="transition-pill">
-            {wt.status === 'starting' ? 'starting…' : 'stopping…'}
-          </span>
-        )}
-        {isStopped && !expanded && (
+        {isTransition && <span className="transition-pill">{wt.status}…</span>}
+        {isStopped && wt.served && !expanded && (
           <button
             className="start-btn"
             onClick={(e) => {
@@ -82,6 +123,18 @@ export function WorktreeRow({
             }}
           >
             ▶ Start
+          </button>
+        )}
+        {isStopped && !wt.served && canPromote && !expanded && (
+          <button
+            className="promote-btn"
+            title="Promote — set up ports & serve this worktree"
+            onClick={(e) => {
+              e.stopPropagation()
+              actions.promote(wt)
+            }}
+          >
+            ↑ Promote
           </button>
         )}
         <button
@@ -97,93 +150,99 @@ export function WorktreeRow({
 
       {expanded && (
         <div className="inset">
-          <div className="chips">
-            <span className="chip fe">FE {wt.port}</span>
-            {wt.extras.map((ex) => (
-              <span key={ex.key} className="chip">
-                {ex.key} {ex.port}
-              </span>
-            ))}
-          </div>
+          {wt.served && wt.port != null && (
+            <div className="chips">
+              <span className="chip fe">FE {wt.port}</span>
+              {wt.extras.map((ex) => (
+                <span key={ex.key} className="chip">
+                  {ex.key} {ex.port}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="wt-path">{wt.path}</div>
           <div className="strip">
             {!confirming ? (
               <>
-                <button
-                  className="ibtn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    actions.openUrl(wt)
-                  }}
-                >
-                  ↗ Open
-                </button>
-                <button
-                  className="ibtn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    actions.openEditor(wt)
-                  }}
-                >
-                  Editor
-                </button>
-                {wt.status === 'running' && (
+                {wt.served && (
+                  <IconAction tip="Open in browser" onAct={() => actions.openUrl(wt)}>
+                    <OpenAction />
+                  </IconAction>
+                )}
+                <IconAction tip="Open in editor" onAct={() => actions.openEditor(wt)}>
+                  <Editor />
+                </IconAction>
+                {wt.served && (
+                  <IconAction
+                    tip={isStopped ? 'Start' : 'Start — already running'}
+                    className="iconbtn start"
+                    disabled={!isStopped}
+                    onAct={() => actions.start(wt)}
+                  >
+                    <Start />
+                  </IconAction>
+                )}
+                {wt.served && (
+                  <IconAction
+                    tip={wt.status === 'running' ? 'Stop' : 'Stop — not running'}
+                    className="iconbtn stop"
+                    disabled={wt.status !== 'running'}
+                    onAct={() => actions.stop(wt)}
+                  >
+                    <StopSquare />
+                  </IconAction>
+                )}
+                {isStopped && !wt.served && canPromote && (
                   <button
-                    className="ibtn stop"
+                    className="ibtn promote"
+                    title="Promote — set up ports & serve this worktree"
                     onClick={(e) => {
                       e.stopPropagation()
-                      actions.stop(wt)
+                      actions.promote(wt)
                     }}
                   >
-                    ■ Stop
+                    ↑ Promote
                   </button>
                 )}
-                {isStopped && (
-                  <button
-                    className="ibtn start"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      actions.start(wt)
-                    }}
-                  >
-                    ▶ Start
-                  </button>
-                )}
-                <button
-                  className="ibtn"
-                  title="docker compose down -v (removes containers + volumes; keeps the worktree)"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    actions.askConfirm(wt.id, 'down')
-                  }}
-                >
-                  Down
-                </button>
                 <span className="spacer" />
-                <button
-                  className="destroy-btn"
-                  title="Destroy — down -v, then remove the worktree & prune (keeps the branch)"
-                  aria-label="Destroy worktree"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    actions.askConfirm(wt.id, 'destroy')
-                  }}
+                {jiraEnabled && (
+                  <IconAction
+                    tip={wt.jiraUrl ? `Jira · ${wt.label}` : 'No ticket key in this branch'}
+                    className="iconbtn tip-right"
+                    disabled={!wt.jiraUrl}
+                    onAct={() => actions.openJira(wt)}
+                  >
+                    <Jira />
+                  </IconAction>
+                )}
+                <IconAction
+                  tip={wt.prUrl ? (wt.prLabel ?? 'Pull request') : 'No PR for this branch yet'}
+                  className="iconbtn tip-right"
+                  disabled={!wt.prUrl}
+                  onAct={() => actions.openPr(wt)}
                 >
-                  <Trash />
-                </button>
+                  <GitHub />
+                </IconAction>
+                <IconAction
+                  tip="Destroy worktree…"
+                  className="iconbtn destroy tip-right"
+                  onAct={() => actions.askConfirm(wt.id)}
+                >
+                  <Destroy />
+                </IconAction>
               </>
             ) : (
               <>
                 <input
-                  className={`tear-input${confirmMod}`}
-                  placeholder={`type ${confirmWord}`}
+                  className="tear-input"
+                  placeholder="type DESTROY"
                   value={confirmText}
                   autoFocus
                   spellCheck={false}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => actions.setConfirmText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && confirmText.trim() === confirmWord) {
+                    if (e.key === 'Enter' && confirmText.trim() === 'DESTROY') {
                       actions.confirm(wt)
                     }
                     if (e.key === 'Escape') {
@@ -193,14 +252,14 @@ export function WorktreeRow({
                   }}
                 />
                 <button
-                  className={`tear-do${confirmMod}`}
-                  disabled={confirmText.trim() !== confirmWord}
+                  className="tear-do"
+                  disabled={confirmText.trim() !== 'DESTROY'}
                   onClick={(e) => {
                     e.stopPropagation()
                     actions.confirm(wt)
                   }}
                 >
-                  {confirmLabel}
+                  Destroy
                 </button>
                 <button
                   className="tear-cancel"

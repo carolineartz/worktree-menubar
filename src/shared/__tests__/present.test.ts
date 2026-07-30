@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { devUrl, repoHue, repoTint, ticketFrom, tildePath } from '../present'
+import {
+  devUrl,
+  jiraBrowseUrl,
+  repoHue,
+  repoTint,
+  ticketFrom,
+  ticketKey,
+  tildePath
+} from '../present'
 
 describe('ticketFrom', () => {
   it.each([
@@ -11,6 +19,36 @@ describe('ticketFrom', () => {
     ['main', 'main']
   ])('%s → %s', (branch, label) => {
     expect(ticketFrom(branch)).toBe(label)
+  })
+})
+
+describe('ticketKey', () => {
+  it('extracts and uppercases a ticket key', () => {
+    expect(ticketKey('cfe-3310/focus-fix')).toBe('CFE-3310')
+  })
+
+  it('is null when nothing ticket-shaped', () => {
+    expect(ticketKey('plain-branch-name')).toBeNull()
+    expect(ticketKey('main')).toBeNull()
+  })
+})
+
+describe('jiraBrowseUrl', () => {
+  it('builds a /browse link from base + ticket key', () => {
+    expect(jiraBrowseUrl('https://cutover.atlassian.net', 'CFE-3310/focus-fix')).toBe(
+      'https://cutover.atlassian.net/browse/CFE-3310'
+    )
+  })
+
+  it('tolerates a trailing slash on the base', () => {
+    expect(jiraBrowseUrl('https://x.atlassian.net/', 'ABC-1')).toBe(
+      'https://x.atlassian.net/browse/ABC-1'
+    )
+  })
+
+  it('is null without a base or without a ticket key', () => {
+    expect(jiraBrowseUrl('', 'ABC-1')).toBeNull()
+    expect(jiraBrowseUrl('https://x.atlassian.net', 'no-ticket-here')).toBeNull()
   })
 })
 

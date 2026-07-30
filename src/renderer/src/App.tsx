@@ -1,24 +1,15 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type JSX,
-  type MouseEvent
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type MouseEvent } from 'react'
 import type { AppState } from '../../shared/ipc'
 import type { WorktreeSnapshot } from '../../shared/types'
 import { api } from './lib/api'
 import { FooterBar } from './components/FooterBar'
 import { WorktreeList } from './components/WorktreeList'
-import type { RowActions, ConfirmKind } from './components/WorktreeRow'
+import type { RowActions } from './components/WorktreeRow'
 
 export default function App(): JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [confirmKind, setConfirmKind] = useState<ConfirmKind>('down')
   const [confirmText, setConfirmText] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -103,11 +94,22 @@ export default function App(): JSX.Element {
         void api.openEditor(wt.id)
         showToast(`Opening ${wt.label} in editor…`)
       },
+      openJira: (wt: WorktreeSnapshot) => {
+        void api.openJira(wt.id)
+        showToast(`Opened ${wt.label} in Jira ↗`)
+      },
+      openPr: (wt: WorktreeSnapshot) => {
+        void api.openPr(wt.id)
+        showToast(`Opened ${wt.prLabel ?? 'PR'} ↗`)
+      },
       start: (wt: WorktreeSnapshot) => void api.startStack(wt.id),
       stop: (wt: WorktreeSnapshot) => void api.stopStack(wt.id),
-      askConfirm: (id: string, kind: ConfirmKind) => {
+      promote: (wt: WorktreeSnapshot) => {
+        void api.promoteWorktree(wt.id)
+        showToast(`Promoting ${wt.label}…`)
+      },
+      askConfirm: (id: string) => {
         setConfirmingId(id)
-        setConfirmKind(kind)
         setConfirmText('')
       },
       cancelConfirm: () => {
@@ -115,14 +117,13 @@ export default function App(): JSX.Element {
         setConfirmText('')
       },
       confirm: (wt: WorktreeSnapshot) => {
-        if (confirmKind === 'destroy') void api.destroyWorktree(wt.id)
-        else void api.downStack(wt.id)
+        void api.destroyWorktree(wt.id)
         setConfirmingId(null)
         setConfirmText('')
       },
       setConfirmText
     }),
-    [toggleExpand, showToast, confirmKind]
+    [toggleExpand, showToast]
   )
 
   if (!state) return <div className="popover" />
@@ -136,17 +137,18 @@ export default function App(): JSX.Element {
           worktrees={state.worktrees}
           expandedId={expandedId}
           confirmingId={confirmingId}
-          confirmKind={confirmKind}
           confirmText={confirmText}
+          canPromote={state.config.promoteCommand.trim() !== ''}
+          jiraEnabled={state.config.jiraBaseUrl.trim() !== ''}
           actions={actions}
         />
       ) : state.configState === 'ok' ? (
         <div className="list">
           <div className="list-inner">
             <div className="empty">
-              <div className="line1">No dev-server worktrees found.</div>
+              <div className="line1">No worktrees found.</div>
               <div className="line2">
-                Worktrees without a dev port in <code>.env</code> are skipped.
+                Each configured repo is scanned with <code>git worktree list</code>.
               </div>
             </div>
           </div>

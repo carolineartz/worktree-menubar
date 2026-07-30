@@ -15,7 +15,15 @@ interface Shot {
 const EXPAND_FIRST = `document.querySelector('.chev')?.click()`
 const DESTROY_CONFIRM = `
   document.querySelector('.chev')?.click();
-  setTimeout(() => document.querySelector('.destroy-btn')?.click(), 120);
+  setTimeout(() => document.querySelector('.iconbtn.destroy')?.click(), 120);
+`
+// open the first repo's "more" section, then expand its first unserved row
+const MORE_EXPANDED = `
+  document.querySelector('.more-toggle')?.click();
+  setTimeout(() => {
+    const toggle = document.querySelector('.more-toggle');
+    toggle?.nextElementSibling?.querySelector('.chev')?.click();
+  }, 120);
 `
 
 const SHOTS: Shot[] = [
@@ -25,7 +33,8 @@ const SHOTS: Shot[] = [
   { name: '04-popover-light', theme: 'light', scenario: 'normal' },
   { name: '07-empty-dark', theme: 'dark', scenario: 'empty' },
   { name: '08-no-config-dark', theme: 'dark', scenario: 'no-config' },
-  { name: '09-docker-off-dark', theme: 'dark', scenario: 'docker-off' }
+  { name: '09-docker-off-dark', theme: 'dark', scenario: 'docker-off' },
+  { name: '10-more-expanded-dark', theme: 'dark', scenario: 'normal', setup: MORE_EXPANDED }
 ]
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))

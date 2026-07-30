@@ -17,7 +17,7 @@ export function openSettingsWindow(): void {
   }
   win = new BrowserWindow({
     width: 480,
-    height: 620,
+    height: 780,
     title: 'Worktree Menubar Settings',
     resizable: false,
     minimizable: false,

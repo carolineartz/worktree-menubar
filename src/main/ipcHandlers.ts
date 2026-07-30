@@ -8,8 +8,8 @@ import type { ConfigSource } from './config'
 export interface StackOps {
   start(id: WorktreeId): void
   stop(id: WorktreeId): void
-  down(id: WorktreeId): void
   destroy(id: WorktreeId): void
+  promote(id: WorktreeId): void
   /** absolute path for the editor command (mock returns null → no-op) */
   editorPath(id: WorktreeId): string | null
 }
@@ -34,7 +34,17 @@ export function registerIpcHandlers(deps: {
 
   ipcMain.handle(CHANNELS.openUrl, (_e, id: WorktreeId) => {
     const w = wt(id)
-    if (w) void shell.openExternal(devUrl(config.get().urlTemplate, w.port))
+    if (w?.port != null) void shell.openExternal(devUrl(config.get().urlTemplate, w.port))
+  })
+
+  ipcMain.handle(CHANNELS.openJira, (_e, id: WorktreeId) => {
+    const url = wt(id)?.jiraUrl
+    if (url) void shell.openExternal(url)
+  })
+
+  ipcMain.handle(CHANNELS.openPr, (_e, id: WorktreeId) => {
+    const url = wt(id)?.prUrl
+    if (url) void shell.openExternal(url)
   })
 
   ipcMain.handle(CHANNELS.openEditor, (_e, id: WorktreeId) => {
@@ -54,13 +64,13 @@ export function registerIpcHandlers(deps: {
     deps.refresh()
   })
 
-  ipcMain.handle(CHANNELS.downStack, (_e, id: WorktreeId) => {
-    ops.down(id)
+  ipcMain.handle(CHANNELS.destroyWorktree, (_e, id: WorktreeId) => {
+    ops.destroy(id)
     deps.refresh()
   })
 
-  ipcMain.handle(CHANNELS.destroyWorktree, (_e, id: WorktreeId) => {
-    ops.destroy(id)
+  ipcMain.handle(CHANNELS.promoteWorktree, (_e, id: WorktreeId) => {
+    ops.promote(id)
     deps.refresh()
   })
 

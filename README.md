@@ -12,8 +12,9 @@ For each git worktree it shows branch ↔ port ↔ running-state, with actions t
 
 1. **Repos** — you list repo roots in `~/.config/worktree-menubar.json` (or via Settings).
 2. **Worktrees** — each repo's `git worktree list` is scanned. The main checkout is skipped unless enabled.
-3. **Ports** — each worktree's `.env` is read; the dev-port key (default `FE_PORT`) makes it a row, extra keys (`API_PORT, WS_PORT, DB_PORT`) become chips in the expanded panel. Worktrees without a dev port are skipped.
-4. **Status** — `docker compose ls` maps compose projects (via `COMPOSE_PROJECT_NAME` in `.env`, falling back to the directory name) to running state. While a start/stop command is in flight the row shows an optimistic pulsing `starting…`/`stopping…`.
+3. **Ports** — each worktree's `.env` is read; the dev-port key (default `FE_PORT`) makes it a served row, extra keys (`API_PORT, WS_PORT, DB_PORT`) become chips in the expanded panel. Worktrees without a dev port are listed in a collapsed **more** section per repo — same editor/Jira/PR/destroy actions, plus **↑ Promote**.
+4. **Status** — `docker compose ls` maps compose projects (via `COMPOSE_PROJECT_NAME` in `.env`, falling back to the directory name) to running state. While a start/stop command is in flight the row shows an optimistic pulsing `starting…`/`stopping…` (promote shows `promoting…`).
+5. **Links** — with a `jiraBaseUrl` configured, branches containing a ticket key (`ABC-123`) get a Jira button in the expanded panel; if `gh` finds a PR for the branch (repo inferred from the worktree's origin remote), a PR button appears next to it.
 
 Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 
@@ -21,8 +22,9 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 
 - **Click a row** → expands it (worktree path, port chips, action strip). **⌘-click** a running row opens its dev URL directly.
 - Each running row has an **open-in-browser** button (left of the chevron); stopped rows show **▶ Start** (`docker compose up -d`).
-- **Expanded panel** → `↗ Open` · `Editor` · `■ Stop` / `▶ Start` · **Down**, plus a red **🗑 Destroy** aligned right.
-- **Down** (`docker compose down -v` — containers **and volumes**, keeps the worktree) requires typing `DOWN`. **Destroy** (full cleanup: `down -v` → `git worktree remove` → prune, **keeps the branch**) requires typing `DESTROY`; it's non-force, so a worktree with uncommitted changes is kept rather than discarded.
+- **Expanded panel** → a strip of borderless icon actions: open in browser · editor · green **start** · amber **stop** (`docker compose stop`), then Jira / GitHub-PR links and a red **destroy** aligned right. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Unserved rows get editor + `↑ Promote` instead of the stack actions.
+- **↑ Promote** runs the configured `promoteCommand` ({branch}/{path} placeholders, cwd = the worktree) to give an unserved worktree ports/.env and boot it — e.g. a `cutover-work`-style script. Hidden until a command is configured.
+- **Destroy** (full cleanup: `docker compose down -v` → `git worktree remove` → prune, **keeps the branch**) requires typing `DESTROY`; it's non-force, so a worktree with uncommitted changes is kept rather than discarded. Destroying an unserved worktree skips the docker step. Volume cleanup only happens here — stop never touches data.
 - Tray shows `running/total` (e.g. `3/5`); in the footer `⌘R` refreshes and the gear opens Settings (right-click the tray for Refresh / Settings / Quit).
 
 ## Config
@@ -37,6 +39,8 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
   "urlTemplate": "http://localhost:{port}/#/login",
   "composeProjectKey": "COMPOSE_PROJECT_NAME",
   "editorCommand": "code",
+  "jiraBaseUrl": "https://yourteam.atlassian.net",
+  "promoteCommand": "cutover-work {branch} --local --no-open",
   "includeMainCheckout": false,
   "theme": "system",
   "refreshSeconds": 10,

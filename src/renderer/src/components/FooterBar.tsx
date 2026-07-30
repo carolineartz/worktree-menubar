@@ -11,8 +11,10 @@ export function FooterBar({
   onRefresh: () => void
   onOpenSettings: () => void
 }): JSX.Element {
-  const running = state.worktrees.filter((w) => w.status === 'running').length
-  const total = state.worktrees.length
+  const served = state.worktrees.filter((w) => w.served)
+  const running = served.filter((w) => w.status === 'running').length
+  const total = served.length
+  const more = state.worktrees.length - served.length
 
   let dot: 'green' | 'hollow' | 'amber'
   let text: string
@@ -27,7 +29,7 @@ export function FooterBar({
     text = 'Docker not running — stacks shown as stopped'
   } else {
     dot = running > 0 ? 'green' : 'hollow'
-    text = `${running} / ${total} running`
+    text = `${running} / ${total} running${more > 0 ? ` · ${more} more` : ''}`
   }
 
   return (

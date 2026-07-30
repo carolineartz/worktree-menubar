@@ -55,24 +55,12 @@ export class DockerService {
     this.exec(id, 'stop', 'stopping', ['stop'], dir, `${label} stopped`, `${label} failed to stop`)
   }
 
-  /** Removes containers + volumes. Never touches the worktree or branch. */
-  down(id: string, dir: string, label: string): void {
-    this.exec(
-      id,
-      'down',
-      'stopping',
-      ['down', '-v'],
-      dir,
-      `Brought down ${label} — containers & volumes removed`,
-      `${label} down failed`
-    )
-  }
-
-  /** Full cleanup: `down -v`, then `git worktree remove` + prune. Keeps the branch. */
-  destroy(id: string, dir: string, repoRoot: string, label: string): void {
+  /** Full cleanup: `down -v`, then `git worktree remove` + prune. Keeps the branch.
+   *  Unserved worktrees (hasStack=false) have nothing composed — skip the docker step. */
+  destroy(id: string, dir: string, repoRoot: string, label: string, hasStack = true): void {
     if (this.pending.has(id)) return
     this.pending.set(id, 'stopping')
-    execFile('docker', ['compose', 'down', '-v'], { cwd: dir, timeout: 180_000 }, (dErr) => {
+    const afterDown = (dErr: Error | null): void => {
       if (dErr) {
         this.pending.delete(id)
         this.onOpDone({ id, kind: 'destroy', ok: false, message: `${label}: docker down failed` })
@@ -97,11 +85,18 @@ export class DockerService {
             id,
             kind: 'destroy',
             ok: true,
-            message: `Destroyed ${label} — stack, volumes & worktree removed`
+            message: hasStack
+              ? `Destroyed ${label} — stack, volumes & worktree removed`
+              : `Destroyed ${label} — worktree removed`
           })
         })
       })
-    })
+    }
+    if (hasStack) {
+      execFile('docker', ['compose', 'down', '-v'], { cwd: dir, timeout: 180_000 }, afterDown)
+    } else {
+      afterDown(null)
+    }
   }
 
   private exec(

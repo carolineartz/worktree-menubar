@@ -9,13 +9,14 @@ import type { OpResult, StackStatus } from '../../../shared/types'
  */
 function createMockApi(): RendererApi {
   const statuses: Record<string, StackStatus> = { ...MOCK_STATUSES }
+  const promoted = new Set<string>()
   const labels = new Map(makeMockWorktrees({}).map((w) => [w.id, w.label]))
 
   const state: AppState = {
     configState: 'ok',
     configError: null,
     dockerRunning: true,
-    worktrees: makeMockWorktrees(statuses),
+    worktrees: makeMockWorktrees(statuses, promoted),
     lastRefreshAt: Date.now() - 4_000,
     config: MOCK_CONFIG
   }
@@ -23,7 +24,7 @@ function createMockApi(): RendererApi {
   let dataListeners: ((s: AppState) => void)[] = []
   let opListeners: ((r: OpResult) => void)[] = []
   const push = (): void => {
-    state.worktrees = makeMockWorktrees(statuses)
+    state.worktrees = makeMockWorktrees(statuses, promoted)
     dataListeners.forEach((cb) => cb({ ...state }))
   }
   const opDone = (r: OpResult): void => {
@@ -67,13 +68,6 @@ function createMockApi(): RendererApi {
         ok: true,
         message: `${label} stopped`
       })),
-    downStack: async (id) =>
-      transition(id, 'stopping', 'stopped', 1200, (label) => ({
-        id,
-        kind: 'down',
-        ok: true,
-        message: `Brought down ${label} — containers & volumes removed`
-      })),
     destroyWorktree: async (id) =>
       transition(id, 'stopping', 'stopped', 1200, (label) => ({
         id,
@@ -81,6 +75,18 @@ function createMockApi(): RendererApi {
         ok: true,
         message: `Destroyed ${label} — stack, volumes & worktree removed`
       })),
+    promoteWorktree: async (id) => {
+      statuses[id] = 'promoting'
+      push()
+      setTimeout(() => {
+        promoted.add(id)
+        statuses[id] = 'running'
+        opDone({ id, kind: 'promote', ok: true, message: `${labels.get(id) ?? id} promoted` })
+        push()
+      }, 2400)
+    },
+    openJira: async (id) => console.log('[mock] open jira', id),
+    openPr: async (id) => console.log('[mock] open pr', id),
     createConfig: async () => {
       state.configState = 'ok'
       push()

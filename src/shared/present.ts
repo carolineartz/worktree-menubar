@@ -10,11 +10,24 @@ export function repoTint(repo: string): string {
   return `color-mix(in oklab, var(--txt3) 45%, hsl(${repoHue(repo)} 75% 58%))`
 }
 
-/** Ticket label from a branch name, e.g. "feature/MDW-214-checkout-totals" →
- *  "MDW-214". Falls back to the branch itself when nothing ticket-shaped. */
-export function ticketFrom(branch: string): string {
+/** Strict ticket key from a branch name, e.g. "feature/MDW-214-checkout-totals"
+ *  → "MDW-214"; null when nothing ticket-shaped. */
+export function ticketKey(branch: string): string | null {
   const m = /([A-Za-z][A-Za-z0-9]+)-(\d{1,6})(?![\d])/.exec(branch)
-  return m ? `${m[1].toUpperCase()}-${m[2]}` : branch
+  return m ? `${m[1].toUpperCase()}-${m[2]}` : null
+}
+
+/** Ticket label for the meta line — falls back to the branch itself. */
+export function ticketFrom(branch: string): string {
+  return ticketKey(branch) ?? branch
+}
+
+/** "…atlassian.net" + "MDW-214/x" → "…atlassian.net/browse/MDW-214";
+ *  null when the base is unset or the branch has no ticket key. */
+export function jiraBrowseUrl(baseUrl: string, branch: string): string | null {
+  const base = baseUrl.trim().replace(/\/+$/, '')
+  const key = ticketKey(branch)
+  return base && key ? `${base}/browse/${key}` : null
 }
 
 /** "/Users/me/dev/x" → "~/dev/x" for display. */

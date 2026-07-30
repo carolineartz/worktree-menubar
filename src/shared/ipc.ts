@@ -24,10 +24,14 @@ export interface Invokers {
   startStack(id: WorktreeId): Promise<void>
   /** docker compose stop */
   stopStack(id: WorktreeId): Promise<void>
-  /** docker compose down -v — removes containers + volumes, keeps the worktree */
-  downStack(id: WorktreeId): Promise<void>
   /** full cleanup: down -v, then `git worktree remove` + prune (keeps the branch) */
   destroyWorktree(id: WorktreeId): Promise<void>
+  /** run the configured promote command to serve an unserved worktree */
+  promoteWorktree(id: WorktreeId): Promise<void>
+  /** open the branch's Jira ticket in the browser */
+  openJira(id: WorktreeId): Promise<void>
+  /** open the branch's GitHub PR in the browser */
+  openPr(id: WorktreeId): Promise<void>
   /** write a default ~/.config/worktree-menubar.json */
   createConfig(): Promise<void>
   getConfig(): Promise<Config>
@@ -51,8 +55,10 @@ export const CHANNELS = {
   openEditor: 'wt:openEditor',
   startStack: 'wt:start',
   stopStack: 'wt:stop',
-  downStack: 'wt:down',
   destroyWorktree: 'wt:destroy',
+  promoteWorktree: 'wt:promote',
+  openJira: 'wt:openJira',
+  openPr: 'wt:openPr',
   createConfig: 'config:create',
   getConfig: 'config:get',
   setConfig: 'config:set',

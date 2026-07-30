@@ -35,8 +35,10 @@ export class Coordinator {
 
   /** Recompute the tray count + push fresh state. Call after any change. */
   publish(): void {
-    const total = this.worktrees.length
-    const running = this.worktrees.filter((w) => w.status === 'running').length
+    // unserved ("more") worktrees don't count toward the tray's running/total
+    const served = this.worktrees.filter((w) => w.served)
+    const total = served.length
+    const running = served.filter((w) => w.status === 'running').length
     const show = this.config.get().showCountInMenuBar && this.config.state === 'ok' && total > 0
     this.targets.setCount(show ? running : -1, total)
 

@@ -3,10 +3,15 @@ import { electronApp } from '@electron-toolkit/utils'
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { CHANNELS } from '../shared/ipc'
+import { jiraBrowseUrl } from '../shared/present'
 import type { WorktreeSnapshot } from '../shared/types'
 import { ConfigStore } from './config'
 import { Coordinator } from './coordinator'
 import { DockerService } from './docker'
+import { fixGuiPath } from './env'
+import { PrLinks } from './github'
+import { probeHealth, withHealth } from './health'
+import { PromoteService } from './promote'
 import type { StackOps } from './ipcHandlers'
 import { registerIpcHandlers } from './ipcHandlers'
 import { MockBackend, MockConfigStore, type MockScenario } from './mock'
@@ -16,6 +21,10 @@ import { captureScreenshots } from './screenshot'
 import { openSettingsWindow } from './settingsWindow'
 import { createTray } from './tray'
 import { scanWorktrees, type ScannedWorktree } from './worktrees'
+
+// Must run before anything shells out: GUI launches get launchd's minimal
+// PATH, which is missing docker (see env.ts).
+fixGuiPath()
 
 const MOCK = !!process.env.WTMB_MOCK
 const SHOOT = !!process.env.WTMB_SHOOT
@@ -69,6 +78,14 @@ app.whenReady().then(() => {
     poller.refresh()
   })
 
+  const promoter = new PromoteService((result) => {
+    coordinator.pushOpDone(result)
+    poller.refresh()
+  })
+
+  // PR lookups resolve in the background; republish when one lands
+  const prLinks = new PrLinks(() => poller.refresh())
+
   const mock = MOCK
     ? new MockBackend(
         SCENARIO,
@@ -95,16 +112,34 @@ app.whenReady().then(() => {
     const scanned = await scanWorktrees(config.get())
     lastScan = new Map(scanned.map((s) => [s.id, s]))
     const snap = await docker.snapshot()
-    const worktrees: WorktreeSnapshot[] = scanned.map((s) => ({
-      id: s.id,
-      repo: s.repo,
-      label: s.label,
-      branch: s.branch,
-      port: s.port,
-      extras: s.extras,
-      path: s.path,
-      status: docker.statusFor(s.id, s.composeProject, snap)
-    }))
+    const healthPath = config.get().healthPath.trim()
+    const statuses = await Promise.all(
+      scanned.map(async (s) => {
+        // unserved rows have no stack — only the promote command's progress
+        if (!s.served || s.port == null) return promoter.isPromoting(s.id) ? 'promoting' : 'stopped'
+        const base = docker.statusFor(s.id, s.composeProject, snap)
+        if (!healthPath || base !== 'running') return base
+        return withHealth(base, await probeHealth(s.port, healthPath))
+      })
+    )
+    const jiraBase = config.get().jiraBaseUrl
+    const worktrees: WorktreeSnapshot[] = scanned.map((s, i) => {
+      const pr = prLinks.get(s.repoRoot, s.branch)
+      return {
+        id: s.id,
+        repo: s.repo,
+        label: s.label,
+        branch: s.branch,
+        port: s.port,
+        extras: s.extras,
+        path: s.path,
+        status: statuses[i],
+        served: s.served,
+        jiraUrl: jiraBrowseUrl(jiraBase, s.branch),
+        prUrl: pr?.url ?? null,
+        prLabel: pr?.label ?? null
+      }
+    })
     coordinator.setData(worktrees, snap.dockerRunning)
   }
 
@@ -117,13 +152,15 @@ app.whenReady().then(() => {
       const s = lastScan.get(id)
       if (s) docker.stop(id, s.absPath, s.label)
     },
-    down: (id) => {
-      const s = lastScan.get(id)
-      if (s) docker.down(id, s.absPath, s.label)
-    },
     destroy: (id) => {
       const s = lastScan.get(id)
-      if (s) docker.destroy(id, s.absPath, s.repoRoot, s.label)
+      if (s) docker.destroy(id, s.absPath, s.repoRoot, s.label, s.served)
+    },
+    promote: (id) => {
+      const s = lastScan.get(id)
+      if (s && !s.served) {
+        promoter.promote(id, s.absPath, s.branch, s.label, config.get().promoteCommand)
+      }
     },
     editorPath: (id) => lastScan.get(id)?.absPath ?? null
   }

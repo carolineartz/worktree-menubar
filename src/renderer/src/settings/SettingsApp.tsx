@@ -20,7 +20,7 @@ export default function SettingsApp(): JSX.Element {
     <div className="settings">
       <Section
         title="Repos"
-        hint="Each repo's worktrees are scanned for a dev port; those without one are skipped."
+        hint="Each repo's worktrees are scanned for a dev port; those without one are listed under “more”."
       >
         <RepoEditor repos={config.repos} onChange={(repos) => patch({ repos })} />
       </Section>
@@ -52,6 +52,24 @@ export default function SettingsApp(): JSX.Element {
           label="Compose project key"
           value={config.composeProjectKey}
           onCommit={(v) => patch({ composeProjectKey: v.trim() || 'COMPOSE_PROJECT_NAME' })}
+        />
+      </Section>
+
+      <Section
+        title="Integrations"
+        hint="Branches with a ticket key (ABC-123) get a Jira button; a GitHub PR button appears when `gh` finds the branch's PR. Promote runs on worktrees without a dev port."
+      >
+        <TextField
+          label="Jira base URL"
+          value={config.jiraBaseUrl}
+          placeholder="https://yourteam.atlassian.net"
+          onCommit={(v) => patch({ jiraBaseUrl: v.trim().replace(/\/+$/, '') })}
+        />
+        <TextField
+          label="Promote command"
+          value={config.promoteCommand}
+          placeholder="cutover-work {branch} --local --no-open"
+          onCommit={(v) => patch({ promoteCommand: v.trim() })}
         />
       </Section>
 
@@ -139,10 +157,12 @@ function Section({
 function TextField({
   label,
   value,
+  placeholder,
   onCommit
 }: {
   label: string
   value: string
+  placeholder?: string
   onCommit: (v: string) => void
 }): JSX.Element {
   return (
@@ -151,6 +171,8 @@ function TextField({
       <input
         type="text"
         defaultValue={value}
+        placeholder={placeholder}
+        spellCheck={false}
         onBlur={(e) => onCommit(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') (e.target as HTMLInputElement).blur()

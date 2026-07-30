@@ -13,6 +13,7 @@ export type MockScenario = 'normal' | 'empty' | 'no-config' | 'docker-off'
 export class MockBackend implements StackOps {
   scenario: MockScenario
   private statuses: Record<string, StackStatus> = { ...MOCK_STATUSES }
+  private promoted = new Set<string>()
   private labels = new Map(makeMockWorktrees({}).map((w) => [w.id, w.label]))
   private timers: ReturnType<typeof setTimeout>[] = []
 
@@ -31,11 +32,11 @@ export class MockBackend implements StackOps {
     if (this.scenario === 'docker-off') {
       const stopped = Object.fromEntries(Object.keys(this.statuses).map((id) => [id, 'stopped']))
       return {
-        worktrees: makeMockWorktrees(stopped as Record<string, StackStatus>),
+        worktrees: makeMockWorktrees(stopped as Record<string, StackStatus>, this.promoted),
         dockerRunning: false
       }
     }
-    return { worktrees: makeMockWorktrees(this.statuses), dockerRunning: true }
+    return { worktrees: makeMockWorktrees(this.statuses, this.promoted), dockerRunning: true }
   }
 
   start(id: string): void {
@@ -56,15 +57,6 @@ export class MockBackend implements StackOps {
     }))
   }
 
-  down(id: string): void {
-    this.transition(id, 'stopping', 'stopped', 1200, (label) => ({
-      id,
-      kind: 'down',
-      ok: true,
-      message: `Brought down ${label} — containers & volumes removed`
-    }))
-  }
-
   destroy(id: string): void {
     this.transition(id, 'stopping', 'stopped', 1200, (label) => ({
       id,
@@ -72,6 +64,25 @@ export class MockBackend implements StackOps {
       ok: true,
       message: `Destroyed ${label} — stack, volumes & worktree removed`
     }))
+  }
+
+  promote(id: string): void {
+    if (this.promoted.has(id)) return
+    this.statuses[id] = 'promoting'
+    this.onChange()
+    this.timers.push(
+      setTimeout(() => {
+        this.promoted.add(id)
+        this.statuses[id] = 'running'
+        this.onOpDone({
+          id,
+          kind: 'promote',
+          ok: true,
+          message: `${this.labels.get(id) ?? id} promoted`
+        })
+        this.onChange()
+      }, 2400)
+    )
   }
 
   editorPath(): string | null {
