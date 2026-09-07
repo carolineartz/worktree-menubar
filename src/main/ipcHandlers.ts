@@ -1,14 +1,14 @@
 import { ipcMain, shell } from 'electron'
 import { CHANNELS } from '../shared/ipc'
 import { devUrl } from '../shared/present'
-import type { Config, WorktreeId, WorktreeSnapshot } from '../shared/types'
+import type { Config, DestroyOptions, WorktreeId, WorktreeSnapshot } from '../shared/types'
 import type { Coordinator } from './coordinator'
 import type { ConfigSource } from './config'
 
 export interface StackOps {
   start(id: WorktreeId): void
   stop(id: WorktreeId): void
-  destroy(id: WorktreeId): void
+  destroy(id: WorktreeId, opts: DestroyOptions): void
   promote(id: WorktreeId): void
   /** absolute path for the editor command (mock returns null → no-op) */
   editorPath(id: WorktreeId): string | null
@@ -64,8 +64,8 @@ export function registerIpcHandlers(deps: {
     deps.refresh()
   })
 
-  ipcMain.handle(CHANNELS.destroyWorktree, (_e, id: WorktreeId) => {
-    ops.destroy(id)
+  ipcMain.handle(CHANNELS.destroyWorktree, (_e, id: WorktreeId, opts?: DestroyOptions) => {
+    ops.destroy(id, { deleteBranch: opts?.deleteBranch === true })
     deps.refresh()
   })
 

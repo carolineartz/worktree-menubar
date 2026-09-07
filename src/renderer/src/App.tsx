@@ -11,6 +11,7 @@ export default function App(): JSX.Element {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [confirmText, setConfirmText] = useState('')
+  const [deleteBranch, setDeleteBranch] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -20,6 +21,13 @@ export default function App(): JSX.Element {
     toastTimer.current = setTimeout(() => setToast(null), 1900)
   }, [])
 
+  // Manual refresh: re-scan now and say so — the list otherwise updates
+  // silently, which reads as "did that do anything?"
+  const refresh = useCallback((): void => {
+    void api.refresh()
+    showToast('Refreshing…')
+  }, [showToast])
+
   useEffect(() => {
     api.getState().then(setState)
     const offData = api.onDataUpdated(setState)
@@ -27,6 +35,7 @@ export default function App(): JSX.Element {
     const offShown = api.onPopoverShown(() => {
       setConfirmingId(null)
       setConfirmText('')
+      setDeleteBranch(false)
     })
     return () => {
       offData()
@@ -39,12 +48,12 @@ export default function App(): JSX.Element {
     const onKey = (e: KeyboardEvent): void => {
       if (e.metaKey && !e.ctrlKey && !e.altKey && e.key === 'r') {
         e.preventDefault()
-        void api.refresh()
+        refresh()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [refresh])
 
   // Size the window to the content: fixed chrome + the list's natural height.
   // .list-inner is unstretched, so this shrinks the window as well as grows it.
@@ -72,6 +81,7 @@ export default function App(): JSX.Element {
     // expanding (or collapsing) a row cancels any pending confirm
     setConfirmingId(null)
     setConfirmText('')
+    setDeleteBranch(false)
   }, [])
 
   const actions: RowActions = useMemo(
@@ -111,19 +121,24 @@ export default function App(): JSX.Element {
       askConfirm: (id: string) => {
         setConfirmingId(id)
         setConfirmText('')
+        setDeleteBranch(false)
       },
       cancelConfirm: () => {
         setConfirmingId(null)
         setConfirmText('')
+        setDeleteBranch(false)
       },
       confirm: (wt: WorktreeSnapshot) => {
-        void api.destroyWorktree(wt.id)
+        void api.destroyWorktree(wt.id, { deleteBranch })
+        showToast(`Destroying ${wt.label}…`)
         setConfirmingId(null)
         setConfirmText('')
+        setDeleteBranch(false)
       },
-      setConfirmText
+      setConfirmText,
+      setDeleteBranch
     }),
-    [toggleExpand, showToast]
+    [toggleExpand, showToast, deleteBranch]
   )
 
   if (!state) return <div className="popover" />
@@ -138,6 +153,7 @@ export default function App(): JSX.Element {
           expandedId={expandedId}
           confirmingId={confirmingId}
           confirmText={confirmText}
+          deleteBranch={deleteBranch}
           canPromote={state.config.promoteCommand.trim() !== ''}
           jiraEnabled={state.config.jiraBaseUrl.trim() !== ''}
           actions={actions}
@@ -181,7 +197,7 @@ export default function App(): JSX.Element {
       )}
       <FooterBar
         state={state}
-        onRefresh={() => void api.refresh()}
+        onRefresh={refresh}
         onOpenSettings={() => void api.openSettingsWindow()}
       />
       {toast && <div className="toast">{toast}</div>}

@@ -18,6 +18,28 @@ export function ChevronDown(): JSX.Element {
   )
 }
 
+/** Git-merge glyph — replaces the status dot when the branch's PR is merged. */
+export function Merge(): JSX.Element {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="4.5" cy="3" r="1.7" />
+      <circle cx="4.5" cy="13" r="1.7" />
+      <circle cx="12" cy="9" r="1.7" />
+      <path d="M4.5 4.7v6.6" />
+      <path d="M4.6 5.5c.6 2.2 2.6 3.5 5.6 3.5" />
+    </svg>
+  )
+}
+
 /** Open-in-browser affordance on a row (left of the chevron). */
 export function OpenExternal(): JSX.Element {
   return (

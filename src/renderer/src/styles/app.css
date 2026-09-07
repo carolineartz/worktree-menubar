@@ -211,6 +211,32 @@ body {
   opacity: 0.8;
 }
 
+/* the branch's PR is merged — a merge glyph stands in for the dot so the row
+   reads as "done, destroy me". Purple like GitHub's merged badge; keeps the
+   running/stopped meaning via the glyph's colour rather than the shape. */
+.dot.merged {
+  width: 11px;
+  height: 11px;
+  margin: 0 -1.5px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--merged);
+}
+
+.dot.merged.running {
+  color: var(--green);
+}
+
+.dot.merged[data-tip]::after {
+  left: -4px;
+  transform: none;
+}
+
 /* the key scanning affordance — an aligned column of port numbers */
 .port {
   flex: none;
@@ -575,6 +601,29 @@ body {
 }
 
 /* typed tear-down confirm — swapped into the strip */
+
+.tear-check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--txt2);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tear-check input {
+  margin: 0;
+  width: 12px;
+  height: 12px;
+  accent-color: var(--redtx);
+}
+
+.tear-check:has(input:checked) {
+  color: var(--redtx);
+}
 
 .tear-input {
   flex: 1;

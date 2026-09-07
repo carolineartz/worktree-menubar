@@ -1,4 +1,11 @@
-import type { Config, ConfigState, OpResult, WorktreeId, WorktreeSnapshot } from './types'
+import type {
+  Config,
+  ConfigState,
+  DestroyOptions,
+  OpResult,
+  WorktreeId,
+  WorktreeSnapshot
+} from './types'
 
 /** Full state pushed to the popover after every poll or mutation. */
 export interface AppState {
@@ -24,8 +31,9 @@ export interface Invokers {
   startStack(id: WorktreeId): Promise<void>
   /** docker compose stop */
   stopStack(id: WorktreeId): Promise<void>
-  /** full cleanup: down -v, then `git worktree remove` + prune (keeps the branch) */
-  destroyWorktree(id: WorktreeId): Promise<void>
+  /** full cleanup: down -v, then `git worktree remove --force` + prune; the
+   *  branch is kept unless opts.deleteBranch */
+  destroyWorktree(id: WorktreeId, opts: DestroyOptions): Promise<void>
   /** run the configured promote command to serve an unserved worktree */
   promoteWorktree(id: WorktreeId): Promise<void>
   /** open the branch's Jira ticket in the browser */

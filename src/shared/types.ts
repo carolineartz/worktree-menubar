@@ -35,6 +35,13 @@ export interface WorktreeSnapshot {
   prUrl: string | null
   /** tooltip for the PR button, e.g. "PR #4312 · open" */
   prLabel: string | null
+  /** the branch's PR has been merged — the row's dot becomes a merge glyph */
+  prMerged: boolean
+}
+
+export interface DestroyOptions {
+  /** also `git branch -D` the local branch after the worktree is removed */
+  deleteBranch: boolean
 }
 
 export type ConfigState = 'ok' | 'missing' | 'error'

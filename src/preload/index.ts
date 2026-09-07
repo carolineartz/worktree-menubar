@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppState, RendererApi } from '../shared/ipc'
 import { CHANNELS } from '../shared/ipc'
-import type { Config, OpResult, WorktreeId } from '../shared/types'
+import type { Config, DestroyOptions, OpResult, WorktreeId } from '../shared/types'
 
 const api: RendererApi = {
   getState: () => ipcRenderer.invoke(CHANNELS.getState),
@@ -10,7 +10,8 @@ const api: RendererApi = {
   openEditor: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.openEditor, id),
   startStack: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.startStack, id),
   stopStack: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.stopStack, id),
-  destroyWorktree: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.destroyWorktree, id),
+  destroyWorktree: (id: WorktreeId, opts: DestroyOptions) =>
+    ipcRenderer.invoke(CHANNELS.destroyWorktree, id, opts),
   promoteWorktree: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.promoteWorktree, id),
   openJira: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.openJira, id),
   openPr: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.openPr, id),

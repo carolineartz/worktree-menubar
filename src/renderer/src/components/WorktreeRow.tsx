@@ -6,6 +6,7 @@ import {
   Editor,
   GitHub,
   Jira,
+  Merge,
   OpenAction,
   OpenExternal,
   Start,
@@ -29,6 +30,8 @@ export interface RowActions {
   cancelConfirm(): void
   confirm(wt: WorktreeSnapshot): void
   setConfirmText(text: string): void
+  /** the "also delete branch" checkbox in the confirm (default off) */
+  setDeleteBranch(on: boolean): void
 }
 
 /** Borderless icon action for the strip. Native title tooltips don't render
@@ -67,6 +70,7 @@ export function WorktreeRow({
   expanded,
   confirming,
   confirmText,
+  deleteBranch,
   canPromote,
   jiraEnabled,
   actions
@@ -75,6 +79,7 @@ export function WorktreeRow({
   expanded: boolean
   confirming: boolean
   confirmText: string
+  deleteBranch: boolean
   /** a promote command is configured — unserved rows get the Promote button */
   canPromote: boolean
   /** a Jira base URL is configured — rows show the Jira button (dimmed without a ticket key) */
@@ -104,7 +109,16 @@ export function WorktreeRow({
           .join(' ')}
         onClick={(e) => actions.rowClick(wt, e)}
       >
-        <span className={`dot ${tone}`} />
+        {wt.prMerged && !isTransition ? (
+          <span
+            className={`dot merged ${tone}`}
+            data-tip={`${wt.prLabel ?? 'PR merged'} — safe to destroy`}
+          >
+            <Merge />
+          </span>
+        ) : (
+          <span className={`dot ${tone}`} />
+        )}
         <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
         <div className="row-main" data-tip={branchTip} onMouseEnter={measureBranch}>
           <div className="branch" ref={branchRef}>
@@ -240,7 +254,7 @@ export function WorktreeRow({
                   <GitHub />
                 </IconAction>
                 <IconAction
-                  tip="Destroy worktree…"
+                  tip={wt.prMerged ? 'Destroy worktree… (PR merged)' : 'Destroy worktree…'}
                   className="iconbtn destroy tip-right"
                   onAct={() => actions.askConfirm(wt.id)}
                 >
@@ -267,6 +281,14 @@ export function WorktreeRow({
                     }
                   }}
                 />
+                <label className="tear-check" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={deleteBranch}
+                    onChange={(e) => actions.setDeleteBranch(e.target.checked)}
+                  />
+                  <span>+ branch</span>
+                </label>
                 <button
                   className="tear-do"
                   disabled={confirmText.trim() !== 'DESTROY'}

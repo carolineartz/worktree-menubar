@@ -35,6 +35,7 @@ interface MockSeed {
   served: boolean
   prUrl: string | null
   prLabel: string | null
+  prMerged?: boolean
 }
 
 const SEEDS: MockSeed[] = [
@@ -84,7 +85,8 @@ const SEEDS: MockSeed[] = [
     path: '~/dev/meadow-worktrees/MDW-198',
     served: true,
     prUrl: 'https://github.com/meadow/meadow/pull/4297',
-    prLabel: 'PR #4297 · merged'
+    prLabel: 'PR #4297 · merged into main',
+    prMerged: true
   },
   {
     id: 'mdw-247',
@@ -153,17 +155,20 @@ const SEEDS: MockSeed[] = [
     extras: [{ key: 'api', port: 3103 }],
     path: '~/dev/lantern-worktrees/LTN-101',
     served: false,
-    prUrl: null,
-    prLabel: null
+    prUrl: 'https://github.com/lantern/lantern/pull/799',
+    prLabel: 'PR #799 · merged into main',
+    prMerged: true
   }
 ]
 
-/** promoted: unserved seeds flipped to served by a mock promote. */
+/** promoted: unserved seeds flipped to served by a mock promote;
+ *  destroyed: seeds removed by a mock destroy. */
 export function makeMockWorktrees(
   statuses: Record<string, StackStatus>,
-  promoted?: Set<string>
+  promoted?: Set<string>,
+  destroyed?: Set<string>
 ): WorktreeSnapshot[] {
-  return SEEDS.map((s) => {
+  return SEEDS.filter((s) => !destroyed?.has(s.id)).map((s) => {
     const served = s.served || (promoted?.has(s.id) ?? false)
     return {
       id: s.id,
@@ -177,7 +182,8 @@ export function makeMockWorktrees(
       served,
       jiraUrl: jiraBrowseUrl(MOCK_CONFIG.jiraBaseUrl, s.branch),
       prUrl: s.prUrl,
-      prLabel: s.prLabel
+      prLabel: s.prLabel,
+      prMerged: s.prMerged ?? false
     }
   })
 }

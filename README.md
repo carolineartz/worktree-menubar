@@ -16,7 +16,7 @@ For each git worktree it shows branch ↔ port ↔ running-state, with actions t
 4. **Status** — `docker compose ls` maps compose projects (via `COMPOSE_PROJECT_NAME` in `.env`, falling back to the directory name) to running state. While a start/stop command is in flight the row shows an optimistic pulsing `starting…`/`stopping…` (promote shows `promoting…`).
 5. **Links** — with a `jiraBaseUrl` configured, branches containing a ticket key (`ABC-123`) get a Jira button in the expanded panel; if `gh` finds a PR for the branch (repo inferred from the worktree's origin remote), a PR button appears next to it.
 
-Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
+Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R (or the `⌘R` footer button — both show a brief _Refreshing…_ toast).
 
 ## Actions
 
@@ -24,7 +24,8 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 - Each running row has an **open-in-browser** button (left of the chevron); stopped rows show **▶ Start** (`docker compose up -d`).
 - **Expanded panel** → a strip of borderless icon actions: open in browser · editor · green **start** · amber **stop** (`docker compose stop`), then Jira / GitHub-PR links and a red **destroy** aligned right. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Branch names too long for the row are truncated; pausing on one shows the full name. Unserved rows get editor + `↑ Promote` instead of the stack actions.
 - **↑ Promote** runs the configured `promoteCommand` ({branch}/{path} placeholders, cwd = the worktree) to give an unserved worktree ports/.env and boot it — e.g. a `cutover-work`-style script. Hidden until a command is configured.
-- **Destroy** (full cleanup: `docker compose down -v` → `git worktree remove` → prune, **keeps the branch**) requires typing `DESTROY`; it's non-force, so a worktree with uncommitted changes is kept rather than discarded. Destroying an unserved worktree skips the docker step. Volume cleanup only happens here — stop never touches data.
+- **Destroy** (full cleanup: `docker compose down -v --remove-orphans` → `git worktree remove --force` → prune, **keeps the branch**) requires typing `DESTROY`. Force is deliberate: real worktrees always carry untracked files (`.husky/_`, `.env`, `node_modules`) that make the non-force remove refuse, so typing `DESTROY` is the confirmation — uncommitted work in that worktree is gone. Tick **+ branch** next to the input (off by default) to also `git branch -D` the local branch. The row disappears as soon as the command finishes. Destroying an unserved worktree skips the docker step; if docker down fails the worktree is still removed and the toast names the compose project to clean up by hand. Volume cleanup only happens here — stop never touches data.
+- **Merged indicator** — when the branch's PR is merged (per `gh pr view`), the row's status dot (or the dotted circle on unserved rows) becomes a purple merge glyph: done, safe to destroy. Hover it for the PR number and base branch. Open PRs are rechecked every ~3 min so a merge shows up soon after.
 - Tray shows `running/total` (e.g. `3/5`); in the footer `⌘R` refreshes and the gear opens Settings (right-click the tray for Refresh / Settings / Quit).
 
 ## Config

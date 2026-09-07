@@ -16,7 +16,10 @@ export interface ScannedWorktree {
   /** absolute repo root — needed to run `git worktree remove/prune` */
   repoRoot: string
   label: string
+  /** display branch — falls back to the dir name for a detached worktree */
   branch: string
+  /** the checked-out branch, null when detached — only this is ever deleted */
+  gitBranch: string | null
   /** null when the worktree has no dev port (unserved) */
   port: number | null
   extras: { key: string; port: number }[]
@@ -93,6 +96,7 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
         repoRoot: abs,
         label: ticketFrom(branch),
         branch,
+        gitBranch: wt.branch,
         port,
         extras: port != null ? extraPorts(env, config.extraPortKeys) : [],
         path: tildePath(wt.path, home),

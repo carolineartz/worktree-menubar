@@ -55,6 +55,14 @@ export class Coordinator {
     this.publish()
   }
 
+  /** Drop a row right away (a destroy finished) — the follow-up poll confirms. */
+  removeWorktree(id: string): void {
+    const next = this.worktrees.filter((w) => w.id !== id)
+    if (next.length === this.worktrees.length) return
+    this.worktrees = next
+    this.publish()
+  }
+
   pushOpDone(result: OpResult): void {
     const win = this.targets.getWindow()
     if (win && !win.isDestroyed()) {

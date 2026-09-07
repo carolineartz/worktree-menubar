@@ -74,6 +74,7 @@ app.whenReady().then(() => {
   })
 
   const docker = new DockerService((result) => {
+    if (result.kind === 'destroy' && result.ok) coordinator.removeWorktree(result.id)
     coordinator.pushOpDone(result)
     poller.refresh()
   })
@@ -137,7 +138,8 @@ app.whenReady().then(() => {
         served: s.served,
         jiraUrl: jiraBrowseUrl(jiraBase, s.branch),
         prUrl: pr?.url ?? null,
-        prLabel: pr?.label ?? null
+        prLabel: pr?.label ?? null,
+        prMerged: pr?.merged ?? false
       }
     })
     coordinator.setData(worktrees, snap.dockerRunning)
@@ -152,9 +154,18 @@ app.whenReady().then(() => {
       const s = lastScan.get(id)
       if (s) docker.stop(id, s.absPath, s.label)
     },
-    destroy: (id) => {
+    destroy: (id, opts) => {
       const s = lastScan.get(id)
-      if (s) docker.destroy(id, s.absPath, s.repoRoot, s.label, s.served)
+      if (!s) return
+      docker.destroy(id, {
+        dir: s.absPath,
+        repoRoot: s.repoRoot,
+        label: s.label,
+        hasStack: s.served,
+        branch: s.gitBranch,
+        composeProject: s.composeProject,
+        deleteBranch: opts.deleteBranch
+      })
     },
     promote: (id) => {
       const s = lastScan.get(id)

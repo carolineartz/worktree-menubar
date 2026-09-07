@@ -25,6 +25,7 @@
   --amberbg: rgba(255, 159, 10, 0.15);
   --bluetx: #0a58ce;
   --bluebg: rgba(10, 132, 255, 0.12);
+  --merged: #8250df;
   --neutx: #6e6e73;
   --neubg: rgba(0, 0, 0, 0.06);
   --btnb: rgba(0, 0, 0, 0.14);
@@ -61,6 +62,7 @@
     --amberbg: rgba(255, 214, 10, 0.15);
     --bluetx: #9ecbff;
     --bluebg: rgba(10, 132, 255, 0.25);
+    --merged: #a371f7;
     --neutx: rgba(255, 255, 255, 0.6);
     --neubg: rgba(255, 255, 255, 0.1);
     --btnb: rgba(255, 255, 255, 0.16);

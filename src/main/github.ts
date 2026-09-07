@@ -7,6 +7,29 @@ export interface PrInfo {
   url: string
   /** button tooltip, e.g. "PR #4312 · open" */
   label: string
+  /** merged into its base — the row shows a merge glyph instead of the dot */
+  merged: boolean
+}
+
+interface GhPrView {
+  url?: string
+  number?: number
+  state?: string
+  isDraft?: boolean
+  mergedAt?: string | null
+  baseRefName?: string
+}
+
+/** Shape `gh pr view --json` output into what the row needs; null without a URL. */
+export function prInfoFrom(pr: GhPrView): PrInfo | null {
+  if (!pr.url) return null
+  const merged = pr.state === 'MERGED' || !!pr.mergedAt
+  const state = merged
+    ? `merged${pr.baseRefName ? ` into ${pr.baseRefName}` : ''}`
+    : pr.isDraft
+      ? 'draft'
+      : (pr.state ?? '').toLowerCase()
+  return { url: pr.url, label: `PR #${pr.number} · ${state}`, merged }
 }
 
 interface CacheEntry {
@@ -14,8 +37,10 @@ interface CacheEntry {
   at: number
 }
 
-/** A found PR's URL never changes — recheck rarely (state only feeds the tooltip). */
-const HIT_TTL_MS = 10 * 60_000
+/** Merged is terminal — recheck rarely. */
+const MERGED_TTL_MS = 30 * 60_000
+/** Open PR — recheck often enough that a merge shows up within a few minutes. */
+const OPEN_TTL_MS = 3 * 60_000
 /** No PR yet — recheck soon so a freshly opened PR shows up quickly. */
 const MISS_TTL_MS = 90_000
 
@@ -38,7 +63,7 @@ export class PrLinks {
     if (this.disabled) return null
     const key = `${repoRoot}\0${branch}`
     const hit = this.cache.get(key)
-    const ttl = hit?.info ? HIT_TTL_MS : MISS_TTL_MS
+    const ttl = !hit?.info ? MISS_TTL_MS : hit.info.merged ? MERGED_TTL_MS : OPEN_TTL_MS
     if (!hit || Date.now() - hit.at > ttl) void this.fetch(key, repoRoot, branch)
     return hit?.info ?? null
   }
@@ -48,14 +73,12 @@ export class PrLinks {
     this.inFlight.add(key)
     let info: PrInfo | null = null
     try {
-      const { stdout } = await run('gh', ['pr', 'view', branch, '--json', 'url,number,state'], {
-        cwd: repoRoot,
-        timeout: 15_000
-      })
-      const pr = JSON.parse(stdout) as { url?: string; number?: number; state?: string }
-      if (pr.url) {
-        info = { url: pr.url, label: `PR #${pr.number} · ${(pr.state ?? '').toLowerCase()}` }
-      }
+      const { stdout } = await run(
+        'gh',
+        ['pr', 'view', branch, '--json', 'url,number,state,isDraft,mergedAt,baseRefName'],
+        { cwd: repoRoot, timeout: 15_000 }
+      )
+      info = prInfoFrom(JSON.parse(stdout) as GhPrView)
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') this.disabled = true
       // anything else (no PR for the branch, gh unauthenticated, offline) → no button

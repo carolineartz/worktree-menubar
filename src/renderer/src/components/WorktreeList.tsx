@@ -29,6 +29,7 @@ interface RowProps {
   expandedId: string | null
   confirmingId: string | null
   confirmText: string
+  deleteBranch: boolean
   canPromote: boolean
   jiraEnabled: boolean
   actions: RowActions
@@ -42,6 +43,7 @@ function rowsFor(rows: WorktreeSnapshot[], p: RowProps): JSX.Element[] {
       expanded={p.expandedId === wt.id}
       confirming={p.confirmingId === wt.id}
       confirmText={p.confirmText}
+      deleteBranch={p.deleteBranch}
       canPromote={p.canPromote}
       jiraEnabled={p.jiraEnabled}
       actions={p.actions}
@@ -75,6 +77,7 @@ export function WorktreeList({
   expandedId,
   confirmingId,
   confirmText,
+  deleteBranch,
   canPromote,
   jiraEnabled,
   actions
@@ -83,11 +86,20 @@ export function WorktreeList({
   expandedId: string | null
   confirmingId: string | null
   confirmText: string
+  deleteBranch: boolean
   canPromote: boolean
   jiraEnabled: boolean
   actions: RowActions
 }): JSX.Element {
-  const p: RowProps = { expandedId, confirmingId, confirmText, canPromote, jiraEnabled, actions }
+  const p: RowProps = {
+    expandedId,
+    confirmingId,
+    confirmText,
+    deleteBranch,
+    canPromote,
+    jiraEnabled,
+    actions
+  }
   return (
     <div className="list">
       <div className="list-inner">

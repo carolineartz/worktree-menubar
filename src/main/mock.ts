@@ -1,4 +1,11 @@
-import type { ConfigState, Config, OpResult, StackStatus, WorktreeSnapshot } from '../shared/types'
+import type {
+  ConfigState,
+  Config,
+  DestroyOptions,
+  OpResult,
+  StackStatus,
+  WorktreeSnapshot
+} from '../shared/types'
 import { makeMockWorktrees, MOCK_CONFIG, MOCK_STATUSES } from '../shared/mockData'
 import type { ConfigSource } from './config'
 import type { StackOps } from './ipcHandlers'
@@ -14,6 +21,7 @@ export class MockBackend implements StackOps {
   scenario: MockScenario
   private statuses: Record<string, StackStatus> = { ...MOCK_STATUSES }
   private promoted = new Set<string>()
+  private destroyed = new Set<string>()
   private labels = new Map(makeMockWorktrees({}).map((w) => [w.id, w.label]))
   private timers: ReturnType<typeof setTimeout>[] = []
 
@@ -32,11 +40,18 @@ export class MockBackend implements StackOps {
     if (this.scenario === 'docker-off') {
       const stopped = Object.fromEntries(Object.keys(this.statuses).map((id) => [id, 'stopped']))
       return {
-        worktrees: makeMockWorktrees(stopped as Record<string, StackStatus>, this.promoted),
+        worktrees: makeMockWorktrees(
+          stopped as Record<string, StackStatus>,
+          this.promoted,
+          this.destroyed
+        ),
         dockerRunning: false
       }
     }
-    return { worktrees: makeMockWorktrees(this.statuses, this.promoted), dockerRunning: true }
+    return {
+      worktrees: makeMockWorktrees(this.statuses, this.promoted, this.destroyed),
+      dockerRunning: true
+    }
   }
 
   start(id: string): void {
@@ -57,13 +72,24 @@ export class MockBackend implements StackOps {
     }))
   }
 
-  destroy(id: string): void {
-    this.transition(id, 'stopping', 'stopped', 1200, (label) => ({
-      id,
-      kind: 'destroy',
-      ok: true,
-      message: `Destroyed ${label} — stack, volumes & worktree removed`
-    }))
+  destroy(id: string, opts: DestroyOptions): void {
+    if (!(id in this.statuses)) return
+    const served = this.scan().worktrees.find((w) => w.id === id)?.served ?? true
+    this.statuses[id] = 'stopping'
+    this.onChange()
+    this.timers.push(
+      setTimeout(() => {
+        this.destroyed.add(id)
+        const what = served ? 'stack, volumes & worktree removed' : 'worktree removed'
+        this.onOpDone({
+          id,
+          kind: 'destroy',
+          ok: true,
+          message: `Destroyed ${this.labels.get(id) ?? id} — ${what}${opts.deleteBranch ? ', branch deleted' : ''}`
+        })
+        this.onChange()
+      }, 1200)
+    )
   }
 
   promote(id: string): void {

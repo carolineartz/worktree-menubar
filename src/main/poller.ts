@@ -6,6 +6,8 @@
 export class Poller {
   private timer: ReturnType<typeof setTimeout> | null = null
   private inFlight = false
+  /** a refresh arrived mid-poll — run one more as soon as this one ends */
+  private rerun = false
   private consecutiveErrors = 0
 
   constructor(
@@ -23,8 +25,14 @@ export class Poller {
     this.timer = null
   }
 
-  /** Immediate poll (popover opened / ⌘R / settings changed). */
+  /** Immediate poll (popover opened / ⌘R / settings changed / op finished).
+   *  Never dropped: if a poll is already running, another follows it, so the
+   *  state after a start/stop/destroy is always re-scanned. */
   refresh(): void {
+    if (this.inFlight) {
+      this.rerun = true
+      return
+    }
     void this.poll()
   }
 
@@ -46,7 +54,12 @@ export class Poller {
       this.onError(err)
     } finally {
       this.inFlight = false
-      this.schedule()
+      if (this.rerun) {
+        this.rerun = false
+        void this.poll()
+      } else {
+        this.schedule()
+      }
     }
   }
 }

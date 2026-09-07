@@ -10,13 +10,14 @@ import type { OpResult, StackStatus } from '../../../shared/types'
 function createMockApi(): RendererApi {
   const statuses: Record<string, StackStatus> = { ...MOCK_STATUSES }
   const promoted = new Set<string>()
+  const destroyed = new Set<string>()
   const labels = new Map(makeMockWorktrees({}).map((w) => [w.id, w.label]))
 
   const state: AppState = {
     configState: 'ok',
     configError: null,
     dockerRunning: true,
-    worktrees: makeMockWorktrees(statuses, promoted),
+    worktrees: makeMockWorktrees(statuses, promoted, destroyed),
     lastRefreshAt: Date.now() - 4_000,
     config: MOCK_CONFIG
   }
@@ -24,7 +25,7 @@ function createMockApi(): RendererApi {
   let dataListeners: ((s: AppState) => void)[] = []
   let opListeners: ((r: OpResult) => void)[] = []
   const push = (): void => {
-    state.worktrees = makeMockWorktrees(statuses, promoted)
+    state.worktrees = makeMockWorktrees(statuses, promoted, destroyed)
     dataListeners.forEach((cb) => cb({ ...state }))
   }
   const opDone = (r: OpResult): void => {
@@ -68,13 +69,20 @@ function createMockApi(): RendererApi {
         ok: true,
         message: `${label} stopped`
       })),
-    destroyWorktree: async (id) =>
-      transition(id, 'stopping', 'stopped', 1200, (label) => ({
-        id,
-        kind: 'destroy',
-        ok: true,
-        message: `Destroyed ${label} — stack, volumes & worktree removed`
-      })),
+    destroyWorktree: async (id, opts) => {
+      statuses[id] = 'stopping'
+      push()
+      setTimeout(() => {
+        destroyed.add(id)
+        opDone({
+          id,
+          kind: 'destroy',
+          ok: true,
+          message: `Destroyed ${labels.get(id) ?? id} — stack, volumes & worktree removed${opts.deleteBranch ? ', branch deleted' : ''}`
+        })
+        push()
+      }, 1200)
+    },
     promoteWorktree: async (id) => {
       statuses[id] = 'promoting'
       push()
