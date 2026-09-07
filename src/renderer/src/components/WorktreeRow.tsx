@@ -1,4 +1,4 @@
-import type { JSX, MouseEvent } from 'react'
+import { useRef, useState, type JSX, type MouseEvent } from 'react'
 import type { WorktreeSnapshot } from '../../../shared/types'
 import {
   ChevronDown,
@@ -86,6 +86,16 @@ export function WorktreeRow({
   const isStopped = wt.status === 'stopped'
   const tone = isTransition ? 'transition' : !wt.served ? 'bare' : isStopped ? 'stopped' : 'running'
 
+  // Full branch name for a truncated one. Measured on hover so the tip only
+  // exists when the ellipsis is actually showing; the CSS delay keeps it from
+  // flashing on a pass-through.
+  const branchRef = useRef<HTMLDivElement>(null)
+  const [branchTip, setBranchTip] = useState<string | undefined>()
+  const measureBranch = (): void => {
+    const el = branchRef.current
+    setBranchTip(el && el.scrollWidth > el.clientWidth ? wt.branch : undefined)
+  }
+
   return (
     <>
       <div
@@ -96,8 +106,10 @@ export function WorktreeRow({
       >
         <span className={`dot ${tone}`} />
         <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
-        <div className="row-main">
-          <div className="branch">{wt.branch}</div>
+        <div className="row-main" data-tip={branchTip} onMouseEnter={measureBranch}>
+          <div className="branch" ref={branchRef}>
+            {wt.branch}
+          </div>
           <div className="meta">{wt.label}</div>
         </div>
         {wt.status === 'running' && (

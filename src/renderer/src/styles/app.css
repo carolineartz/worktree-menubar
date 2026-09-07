@@ -517,12 +517,33 @@ body {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s ease 0.6s;
+  transition: opacity 0.12s ease;
   z-index: 40;
 }
 
+/* delay only on the way in — a pass-through never shows it, and it drops
+   instantly on mouse-out instead of trailing the cursor to the next row */
 [data-tip]:hover::after {
   opacity: 1;
+  transition-delay: 0.6s;
+}
+
+/* truncated branch name: the tip sits over the text in place (Finder-style)
+   and in the same face, so it reads as the name un-clipped. Wraps if longer
+   than the row, and stays inside the list's scroll clip. */
+.row-main[data-tip]::after {
+  top: -3px;
+  bottom: auto;
+  left: -7px;
+  transform: none;
+  width: max-content;
+  max-width: calc(100vw - 118px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: normal;
 }
 
 /* right-edge buttons anchor the tip to their right so it can't clip */

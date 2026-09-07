@@ -4,8 +4,8 @@ macOS menubar app that answers: **which branch is running on which localhost, is
 
 For each git worktree it shows branch ↔ port ↔ running-state, with actions to open the dev URL, open the worktree in your editor, start/stop the Docker stack, and tear it down.
 
-| | |
-|---|---|
+|                                                        |                                                            |
+| ------------------------------------------------------ | ---------------------------------------------------------- |
 | ![popover, dark](docs/screenshots/01-popover-dark.png) | ![expanded row](docs/screenshots/02-row-expanded-dark.png) |
 
 ## How it reads your machine
@@ -22,7 +22,7 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R.
 
 - **Click a row** → expands it (worktree path, port chips, action strip). **⌘-click** a running row opens its dev URL directly.
 - Each running row has an **open-in-browser** button (left of the chevron); stopped rows show **▶ Start** (`docker compose up -d`).
-- **Expanded panel** → a strip of borderless icon actions: open in browser · editor · green **start** · amber **stop** (`docker compose stop`), then Jira / GitHub-PR links and a red **destroy** aligned right. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Unserved rows get editor + `↑ Promote` instead of the stack actions.
+- **Expanded panel** → a strip of borderless icon actions: open in browser · editor · green **start** · amber **stop** (`docker compose stop`), then Jira / GitHub-PR links and a red **destroy** aligned right. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Branch names too long for the row are truncated; pausing on one shows the full name. Unserved rows get editor + `↑ Promote` instead of the stack actions.
 - **↑ Promote** runs the configured `promoteCommand` ({branch}/{path} placeholders, cwd = the worktree) to give an unserved worktree ports/.env and boot it — e.g. a `cutover-work`-style script. Hidden until a command is configured.
 - **Destroy** (full cleanup: `docker compose down -v` → `git worktree remove` → prune, **keeps the branch**) requires typing `DESTROY`; it's non-force, so a worktree with uncommitted changes is kept rather than discarded. Destroying an unserved worktree skips the docker step. Volume cleanup only happens here — stop never touches data.
 - Tray shows `running/total` (e.g. `3/5`); in the footer `⌘R` refreshes and the gear opens Settings (right-click the tray for Refresh / Settings / Quit).
