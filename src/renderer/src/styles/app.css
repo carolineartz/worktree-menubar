@@ -419,6 +419,15 @@ body {
   color: var(--faint);
 }
 
+/* hostname address in place of the port number — no fixed width, but capped
+   so a long WORK_HOST can't push the row's icons off the edge */
+.port.addr {
+  min-width: 0;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .row-main {
   flex: 1;
   min-width: 0;

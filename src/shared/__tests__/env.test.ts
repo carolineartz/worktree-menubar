@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extraPorts, parseEnv, portFrom } from '../env'
+import { extraPorts, hostFrom, parseEnv, portFrom } from '../env'
 
 describe('parseEnv', () => {
   it('parses simple KEY=VALUE lines', () => {
@@ -51,6 +51,18 @@ describe('portFrom', () => {
     ['decimal', { FE_PORT: '90.2' }]
   ])('rejects %s', (_name, env) => {
     expect(portFrom(env as Record<string, string>, 'FE_PORT')).toBeNull()
+  })
+})
+
+describe('hostFrom', () => {
+  it('returns a trimmed host value', () => {
+    expect(hostFrom({ WORK_HOST: 'rb-4047.localhost' }, 'WORK_HOST')).toBe('rb-4047.localhost')
+    expect(hostFrom({ WORK_HOST: '  rb-4047.localhost  ' }, 'WORK_HOST')).toBe('rb-4047.localhost')
+  })
+
+  it('is null when missing or blank', () => {
+    expect(hostFrom({}, 'WORK_HOST')).toBeNull()
+    expect(hostFrom({ WORK_HOST: '   ' }, 'WORK_HOST')).toBeNull()
   })
 })
 

@@ -26,6 +26,10 @@ export interface WorktreeSnapshot {
   branch: string
   /** the dev-server (FE) port — null for unserved worktrees */
   port: number | null
+  /** WORK_HOST from .env, e.g. "rb-4047.localhost" — a shared-Traefik hostname,
+   *  preferred over the port for the open-in-browser URL. Absent on worktrees
+   *  not yet re-run through `work`. */
+  host?: string
   extras: ExtraPort[]
   /** display path, ~-abbreviated */
   path: string
@@ -61,10 +65,16 @@ export interface Config {
   repos: string[]
   /** .env key holding the dev-server port */
   devPortKey: string
+  /** .env key holding the shared-Traefik hostname (e.g. "rb-4047.localhost");
+   *  empty on worktrees not yet re-run through `work` */
+  hostKey: string
   /** .env keys surfaced as extra port chips (label = key minus _PORT) */
   extraPortKeys: string[]
   /** {port} is replaced with the worktree's dev port */
   urlTemplate: string
+  /** {host} is replaced with the worktree's host; preferred over urlTemplate
+   *  when the worktree has one */
+  hostUrlTemplate: string
   /**
    * Health-probe path on the dev port (e.g. "/api/configs"): a stack whose
    * containers are up but that doesn't answer 2xx here shows as 'starting'
@@ -98,8 +108,10 @@ export interface Config {
 export const DEFAULT_CONFIG: Config = {
   repos: [],
   devPortKey: 'FE_PORT',
+  hostKey: 'WORK_HOST',
   extraPortKeys: ['API_PORT', 'WS_PORT', 'DB_PORT'],
   urlTemplate: 'http://localhost:{port}/',
+  hostUrlTemplate: 'http://{host}/',
   healthPath: '',
   composeProjectKey: 'COMPOSE_PROJECT_NAME',
   editorCommand: 'code',

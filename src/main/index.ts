@@ -156,6 +156,7 @@ app.whenReady().then(() => {
         label: s.label,
         branch: s.branch,
         port: s.port,
+        host: s.host ?? undefined,
         extras: s.extras,
         path: s.path,
         status: statuses[i].status,

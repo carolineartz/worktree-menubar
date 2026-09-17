@@ -53,6 +53,16 @@ export default function SettingsApp(): JSX.Element {
           value={config.composeProjectKey}
           onCommit={(v) => patch({ composeProjectKey: v.trim() || 'COMPOSE_PROJECT_NAME' })}
         />
+        <TextField
+          label="Hostname env key"
+          value={config.hostKey}
+          onCommit={(v) => patch({ hostKey: v.trim() || 'WORK_HOST' })}
+        />
+        <TextField
+          label="Hostname URL template"
+          value={config.hostUrlTemplate}
+          onCommit={(v) => patch({ hostUrlTemplate: v.trim() || 'http://{host}/' })}
+        />
       </Section>
 
       <Section

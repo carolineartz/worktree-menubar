@@ -1,7 +1,7 @@
 import { ipcMain, shell } from 'electron'
 import { opsLogPath } from './opsLog'
 import { CHANNELS } from '../shared/ipc'
-import { devUrl } from '../shared/present'
+import { worktreeUrl } from '../shared/present'
 import type { Config, DestroyOptions, WorktreeId, WorktreeSnapshot } from '../shared/types'
 import type { Coordinator } from './coordinator'
 import type { ConfigSource } from './config'
@@ -35,7 +35,8 @@ export function registerIpcHandlers(deps: {
 
   ipcMain.handle(CHANNELS.openUrl, (_e, id: WorktreeId) => {
     const w = wt(id)
-    if (w?.port != null) void shell.openExternal(devUrl(config.get().urlTemplate, w.port))
+    const url = w && worktreeUrl(w, config.get())
+    if (url) void shell.openExternal(url)
   })
 
   ipcMain.handle(CHANNELS.openJira, (_e, id: WorktreeId) => {

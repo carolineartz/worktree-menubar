@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import { promisify } from 'node:util'
 import { defaultComposeProject } from '../shared/compose'
-import { extraPorts, parseEnv, portFrom } from '../shared/env'
+import { extraPorts, hostFrom, parseEnv, portFrom } from '../shared/env'
 import { ticketFrom, tildePath } from '../shared/present'
 import type { Config } from '../shared/types'
 
@@ -22,6 +22,8 @@ export interface ScannedWorktree {
   gitBranch: string | null
   /** null when the worktree has no dev port (unserved) */
   port: number | null
+  /** WORK_HOST from .env — null on worktrees not yet re-run through `work` */
+  host: string | null
   extras: { key: string; port: number }[]
   path: string
   absPath: string
@@ -88,6 +90,7 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
         // no .env — an unserved worktree
       }
       const port = portFrom(env, config.devPortKey)
+      const host = hostFrom(env, config.hostKey)
 
       const branch = wt.branch ?? basename(wt.path)
       results.push({
@@ -98,6 +101,7 @@ export async function scanWorktrees(config: Config): Promise<ScannedWorktree[]> 
         branch,
         gitBranch: wt.branch,
         port,
+        host,
         extras: port != null ? extraPorts(env, config.extraPortKeys) : [],
         path: tildePath(wt.path, home),
         absPath: wt.path,

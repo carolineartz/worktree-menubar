@@ -33,6 +33,12 @@ export function portFrom(env: Record<string, string>, key: string): number | nul
   return n >= 1 && n <= 65535 ? n : null
 }
 
+/** A non-empty (trimmed) string value; null when the key is absent or blank. */
+export function hostFrom(env: Record<string, string>, key: string): string | null {
+  const raw = env[key]?.trim()
+  return raw ? raw : null
+}
+
 /** Extra port chips in config order, labeled by key minus a _PORT suffix. */
 export function extraPorts(env: Record<string, string>, keys: string[]): ExtraPort[] {
   const out: ExtraPort[] = []

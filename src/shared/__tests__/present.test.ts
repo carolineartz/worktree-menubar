@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   devUrl,
+  hostUrl,
   jiraBrowseUrl,
   repoHue,
   repoTint,
   ticketFrom,
   ticketKey,
-  tildePath
+  tildePath,
+  worktreeUrl
 } from '../present'
 
 describe('ticketFrom', () => {
@@ -78,6 +80,40 @@ describe('devUrl', () => {
 
   it('falls back to a plain localhost URL when the template lacks {port}', () => {
     expect(devUrl('oops', 9002)).toBe('http://localhost:9002/')
+  })
+})
+
+describe('hostUrl', () => {
+  it('fills the {host} placeholder', () => {
+    expect(hostUrl('http://{host}/#/login', 'rb-4047.localhost')).toBe(
+      'http://rb-4047.localhost/#/login'
+    )
+  })
+
+  it('falls back to a plain http URL when the template lacks {host}', () => {
+    expect(hostUrl('oops', 'rb-4047.localhost')).toBe('http://rb-4047.localhost/')
+  })
+})
+
+describe('worktreeUrl', () => {
+  const cfg = {
+    urlTemplate: 'http://localhost:{port}/#/login',
+    hostUrlTemplate: 'http://{host}/#/login'
+  }
+
+  it('prefers the hostname template when the worktree has a host', () => {
+    expect(worktreeUrl({ port: 9002, host: 'rb-4047.localhost' }, cfg)).toBe(
+      'http://rb-4047.localhost/#/login'
+    )
+  })
+
+  it('falls back to the port template exactly as before when there is no host', () => {
+    expect(worktreeUrl({ port: 9002, host: null }, cfg)).toBe('http://localhost:9002/#/login')
+    expect(worktreeUrl({ port: 9002 }, cfg)).toBe('http://localhost:9002/#/login')
+  })
+
+  it('is null when neither a host nor a port is available', () => {
+    expect(worktreeUrl({ port: null, host: null }, cfg)).toBeNull()
   })
 })
 

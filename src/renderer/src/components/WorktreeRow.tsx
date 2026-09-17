@@ -149,7 +149,16 @@ export function WorktreeRow({
         ) : (
           <span className={`dot ${tone}`} />
         )}
-        <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
+        {wt.host ? (
+          <>
+            <span className={`port addr ${tone}`} data-tip={wt.host}>
+              {wt.host}
+            </span>
+            {wt.port != null && <span className="chip">{wt.port}</span>}
+          </>
+        ) : (
+          <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
+        )}
         <div className="row-main" data-tip={branchTip} onMouseEnter={measureBranch}>
           <div className="branch" ref={branchRef}>
             {wt.branch}

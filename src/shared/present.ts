@@ -41,3 +41,22 @@ export function devUrl(template: string, port: number): string {
     ? template.replaceAll('{port}', String(port))
     : `http://localhost:${port}/`
 }
+
+/** Fill the config's hostname template: "http://{host}/#/login" + "rb-4047.localhost". */
+export function hostUrl(template: string, host: string): string {
+  return template.includes('{host}') ? template.replaceAll('{host}', host) : `http://${host}/`
+}
+
+/**
+ * The URL to open for a worktree. A WORK_HOST (behind the shared Traefik
+ * proxy on :80) is preferred when present — browsers scope cookies by
+ * hostname, so the port URL is a separate, usually-logged-out cookie jar.
+ * Falls back to the port template exactly as before when there's no host.
+ */
+export function worktreeUrl(
+  wt: { port: number | null; host?: string | null },
+  cfg: { urlTemplate: string; hostUrlTemplate: string }
+): string | null {
+  if (wt.host) return hostUrl(cfg.hostUrlTemplate, wt.host)
+  return wt.port != null ? devUrl(cfg.urlTemplate, wt.port) : null
+}
