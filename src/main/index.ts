@@ -1,16 +1,16 @@
-import { app, Menu, nativeTheme } from 'electron'
+import { app, Menu, nativeTheme, Notification } from 'electron'
 import { electronApp } from '@electron-toolkit/utils'
 import { execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { CHANNELS } from '../shared/ipc'
 import { jiraBrowseUrl } from '../shared/present'
-import type { WorktreeSnapshot } from '../shared/types'
+import type { OpResult, StackStatus, WorktreeSnapshot } from '../shared/types'
 import { ConfigStore } from './config'
 import { Coordinator } from './coordinator'
 import { DockerService } from './docker'
 import { fixGuiPath } from './env'
 import { PrLinks } from './github'
-import { probeHealth, withHealth } from './health'
+import { HealthTracker, probeHealth } from './health'
 import { PromoteService } from './promote'
 import type { StackOps } from './ipcHandlers'
 import { registerIpcHandlers } from './ipcHandlers'
@@ -70,19 +70,34 @@ app.whenReady().then(() => {
 
   const coordinator = new Coordinator(config, {
     getWindow: () => popover.win,
-    setCount: (running, total) => trayCtl.setCount(running, total)
+    setCount: (running, total, alerts) => trayCtl.setCount(running, total, alerts)
   })
 
-  const docker = new DockerService((result) => {
+  /** An op finished while the popover was closed: the toast would go unseen,
+   *  so say it through Notification Center instead (failures always; destroy
+   *  successes too, since they're the ones you wait on). Clicking opens the popover. */
+  const notifyIfHidden = (result: OpResult): void => {
+    if (popover.win.isVisible()) return
+    if (result.ok && result.kind !== 'destroy') return
+    if (!Notification.isSupported()) return
+    const n = new Notification({
+      title: result.ok ? 'Worktree Menubar' : 'Worktree Menubar — failed',
+      body: result.ok ? result.message : `${result.message}. Open the popover for details.`,
+      silent: result.ok
+    })
+    n.on('click', () => popover.show(trayCtl.tray.getBounds()))
+    n.show()
+  }
+
+  const onOpDone = (result: OpResult): void => {
     if (result.kind === 'destroy' && result.ok) coordinator.removeWorktree(result.id)
     coordinator.pushOpDone(result)
+    notifyIfHidden(result)
     poller.refresh()
-  })
+  }
 
-  const promoter = new PromoteService((result) => {
-    coordinator.pushOpDone(result)
-    poller.refresh()
-  })
+  const docker = new DockerService(onOpDone)
+  const promoter = new PromoteService(onOpDone)
 
   // PR lookups resolve in the background; republish when one lands
   const prLinks = new PrLinks(() => poller.refresh())
@@ -97,6 +112,7 @@ app.whenReady().then(() => {
 
   /** Real scan results by id — start/stop need the worktree dir + project. */
   let lastScan = new Map<string, ScannedWorktree>()
+  const health = new HealthTracker()
 
   const poll = async (): Promise<void> => {
     if (mock) {
@@ -115,12 +131,20 @@ app.whenReady().then(() => {
     const snap = await docker.snapshot()
     const healthPath = config.get().healthPath.trim()
     const statuses = await Promise.all(
-      scanned.map(async (s) => {
-        // unserved rows have no stack — only the promote command's progress
-        if (!s.served || s.port == null) return promoter.isPromoting(s.id) ? 'promoting' : 'stopped'
+      scanned.map(async (s): Promise<{ status: StackStatus; detail: string | null }> => {
+        // unserved rows have no stack — only a promote or destroy in progress
+        if (!s.served || s.port == null) {
+          const pending = docker.pendingFor(s.id)
+          return {
+            status: pending ?? (promoter.isPromoting(s.id) ? 'promoting' : 'stopped'),
+            detail: null
+          }
+        }
         const base = docker.statusFor(s.id, s.composeProject, snap)
-        if (!healthPath || base !== 'running') return base
-        return withHealth(base, await probeHealth(s.port, healthPath))
+        const probe =
+          healthPath && base === 'running' ? await probeHealth(s.port, healthPath) : null
+        const h = health.apply(s.id, base, probe)
+        return { status: h.status, detail: h.detail ? `${h.detail} at ${healthPath}` : null }
       })
     )
     const jiraBase = config.get().jiraBaseUrl
@@ -134,12 +158,14 @@ app.whenReady().then(() => {
         port: s.port,
         extras: s.extras,
         path: s.path,
-        status: statuses[i],
+        status: statuses[i].status,
+        statusDetail: statuses[i].detail,
         served: s.served,
         jiraUrl: jiraBrowseUrl(jiraBase, s.branch),
         prUrl: pr?.url ?? null,
         prLabel: pr?.label ?? null,
-        prMerged: pr?.merged ?? false
+        prMerged: pr?.merged ?? false,
+        lastError: null // filled in by the coordinator
       }
     })
     coordinator.setData(worktrees, snap.dockerRunning)

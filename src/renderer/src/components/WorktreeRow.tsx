@@ -32,6 +32,17 @@ export interface RowActions {
   setConfirmText(text: string): void
   /** the "also delete branch" checkbox in the confirm (default off) */
   setDeleteBranch(on: boolean): void
+  /** clear the failure pinned under a row */
+  dismissError(wt: WorktreeSnapshot): void
+  /** reveal ops.log in Finder/Console */
+  openOpsLog(): void
+}
+
+const KIND_VERB: Record<string, string> = {
+  start: 'Start',
+  stop: 'Stop',
+  destroy: 'Destroy',
+  promote: 'Promote'
 }
 
 /** Borderless icon action for the strip. Native title tooltips don't render
@@ -86,10 +97,22 @@ export function WorktreeRow({
   jiraEnabled: boolean
   actions: RowActions
 }): JSX.Element {
+  const destroying = wt.status === 'destroying'
+  const unhealthy = wt.status === 'unhealthy'
   const isTransition =
-    wt.status === 'starting' || wt.status === 'stopping' || wt.status === 'promoting'
+    wt.status === 'starting' || wt.status === 'stopping' || wt.status === 'promoting' || destroying
   const isStopped = wt.status === 'stopped'
-  const tone = isTransition ? 'transition' : !wt.served ? 'bare' : isStopped ? 'stopped' : 'running'
+  // containers are up in both cases — the app just isn't answering when unhealthy
+  const isUp = wt.status === 'running' || unhealthy
+  const tone = isTransition
+    ? 'transition'
+    : !wt.served
+      ? 'bare'
+      : isStopped
+        ? 'stopped'
+        : unhealthy
+          ? 'unhealthy'
+          : 'running'
 
   // Full branch name for a truncated one. Measured on hover so the tip only
   // exists when the ellipsis is actually showing; the CSS delay keeps it from
@@ -104,10 +127,17 @@ export function WorktreeRow({
   return (
     <>
       <div
-        className={['row', isStopped && wt.served && 'stopped', expanded && 'expanded']
+        className={[
+          'row',
+          isStopped && wt.served && 'stopped',
+          expanded && !destroying && 'expanded',
+          destroying && 'destroying'
+        ]
           .filter(Boolean)
           .join(' ')}
-        onClick={(e) => actions.rowClick(wt, e)}
+        onClick={(e) => {
+          if (!destroying) actions.rowClick(wt, e)
+        }}
       >
         {wt.prMerged && !isTransition ? (
           <span
@@ -139,7 +169,19 @@ export function WorktreeRow({
             <OpenExternal />
           </button>
         )}
-        {isTransition && <span className="transition-pill">{wt.status}…</span>}
+        {isTransition && !destroying && (
+          <span className="transition-pill tip-right" data-tip={wt.statusDetail ?? undefined}>
+            {wt.status}…
+          </span>
+        )}
+        {unhealthy && (
+          <span
+            className="transition-pill unhealthy tip-right"
+            data-tip={wt.statusDetail ?? 'containers up, app not answering'}
+          >
+            unhealthy
+          </span>
+        )}
         {isStopped && wt.served && !expanded && (
           <button
             className="start-btn"
@@ -172,9 +214,37 @@ export function WorktreeRow({
         >
           <ChevronDown />
         </button>
+        {destroying && (
+          <div className="row-overlay" role="status" aria-live="polite">
+            <span className="row-spin" />
+            <span className="row-overlay-text">
+              Destroying <b>{wt.label}</b>…
+            </span>
+          </div>
+        )}
       </div>
 
-      {expanded && (
+      {wt.lastError && !destroying && (
+        <div className="row-error" onClick={(e) => e.stopPropagation()}>
+          <div className="row-error-head">
+            <span className="row-error-title">
+              {KIND_VERB[wt.lastError.kind] ?? wt.lastError.kind} failed
+            </span>
+            <span className="row-error-msg">{wt.lastError.message}</span>
+          </div>
+          {wt.lastError.detail && <pre className="row-error-detail">{wt.lastError.detail}</pre>}
+          <div className="row-error-actions">
+            <button className="tear-cancel" onClick={() => actions.openOpsLog()}>
+              Open log
+            </button>
+            <button className="tear-cancel" onClick={() => actions.dismissError(wt)}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {expanded && !destroying && (
         <div className="inset">
           {wt.served && wt.port != null && (
             <div className="chips">
@@ -192,8 +262,8 @@ export function WorktreeRow({
               <>
                 {wt.served && (
                   <IconAction
-                    tip={wt.status === 'running' ? 'Open in browser' : 'Open in browser — not up'}
-                    disabled={wt.status !== 'running'}
+                    tip={isUp ? 'Open in browser' : 'Open in browser — not up'}
+                    disabled={!isUp}
                     onAct={() => actions.openUrl(wt)}
                   >
                     <OpenAction />
@@ -204,9 +274,15 @@ export function WorktreeRow({
                 </IconAction>
                 {wt.served && (
                   <IconAction
-                    tip={isStopped ? 'Start' : 'Start — already running'}
+                    tip={
+                      isStopped
+                        ? 'Start'
+                        : unhealthy
+                          ? 'Start — re-run up -d to recreate missing containers'
+                          : 'Start — already running'
+                    }
                     className="iconbtn start"
-                    disabled={!isStopped}
+                    disabled={!isStopped && !unhealthy}
                     onAct={() => actions.start(wt)}
                   >
                     <Start />
@@ -214,9 +290,9 @@ export function WorktreeRow({
                 )}
                 {wt.served && (
                   <IconAction
-                    tip={wt.status === 'running' ? 'Stop' : 'Stop — not running'}
+                    tip={isUp ? 'Stop' : 'Stop — not running'}
                     className="iconbtn stop"
-                    disabled={wt.status !== 'running'}
+                    disabled={!isUp}
                     onAct={() => actions.stop(wt)}
                   >
                     <StopSquare />

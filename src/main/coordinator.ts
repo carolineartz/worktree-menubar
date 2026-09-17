@@ -1,7 +1,7 @@
 import type { BrowserWindow } from 'electron'
 import type { AppState } from '../shared/ipc'
 import { CHANNELS } from '../shared/ipc'
-import type { OpResult, WorktreeSnapshot } from '../shared/types'
+import type { OpError, OpResult, WorktreeSnapshot } from '../shared/types'
 import type { ConfigSource } from './config'
 
 /**
@@ -13,12 +13,14 @@ export class Coordinator {
   worktrees: WorktreeSnapshot[] = []
   dockerRunning = true
   lastRefreshAt: number | null = null
+  /** failed ops by worktree id — pinned under the row until dismissed */
+  private errors = new Map<string, OpError>()
 
   constructor(
     private config: ConfigSource,
     private targets: {
       getWindow(): BrowserWindow | null
-      setCount(running: number, total: number): void
+      setCount(running: number, total: number, alerts: boolean): void
     }
   ) {}
 
@@ -27,7 +29,7 @@ export class Coordinator {
       configState: this.config.state,
       configError: this.config.error,
       dockerRunning: this.dockerRunning,
-      worktrees: this.worktrees,
+      worktrees: this.worktrees.map((w) => ({ ...w, lastError: this.errors.get(w.id) ?? null })),
       lastRefreshAt: this.lastRefreshAt,
       config: this.config.get()
     }
@@ -40,7 +42,7 @@ export class Coordinator {
     const total = served.length
     const running = served.filter((w) => w.status === 'running').length
     const show = this.config.get().showCountInMenuBar && this.config.state === 'ok' && total > 0
-    this.targets.setCount(show ? running : -1, total)
+    this.targets.setCount(show ? running : -1, total, this.errors.size > 0)
 
     const win = this.targets.getWindow()
     if (win && !win.isDestroyed()) {
@@ -49,6 +51,9 @@ export class Coordinator {
   }
 
   setData(worktrees: WorktreeSnapshot[], dockerRunning: boolean): void {
+    // a failure pinned to a worktree that no longer exists has nothing to hang on
+    const ids = new Set(worktrees.map((w) => w.id))
+    for (const id of this.errors.keys()) if (!ids.has(id)) this.errors.delete(id)
     this.worktrees = worktrees
     this.dockerRunning = dockerRunning
     this.lastRefreshAt = Date.now()
@@ -63,7 +68,26 @@ export class Coordinator {
     this.publish()
   }
 
+  clearError(id: string): void {
+    if (this.errors.delete(id)) this.publish()
+  }
+
+  hasError(id: string): boolean {
+    return this.errors.has(id)
+  }
+
+  /** Record the outcome: a failure pins under the row, a success clears any earlier one. */
   pushOpDone(result: OpResult): void {
+    if (result.ok) this.errors.delete(result.id)
+    else {
+      this.errors.set(result.id, {
+        kind: result.kind,
+        message: result.message,
+        detail: result.detail,
+        at: Date.now()
+      })
+    }
+    this.publish()
     const win = this.targets.getWindow()
     if (win && !win.isDestroyed()) {
       win.webContents.send(CHANNELS.opDone, result)

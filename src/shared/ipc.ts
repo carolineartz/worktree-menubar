@@ -40,6 +40,10 @@ export interface Invokers {
   openJira(id: WorktreeId): Promise<void>
   /** open the branch's GitHub PR in the browser */
   openPr(id: WorktreeId): Promise<void>
+  /** clear a row's pinned failure */
+  dismissError(id: WorktreeId): Promise<void>
+  /** reveal ~/Library/Logs/worktree-menubar/ops.log */
+  openOpsLog(): Promise<void>
   /** write a default ~/.config/worktree-menubar.json */
   createConfig(): Promise<void>
   getConfig(): Promise<Config>
@@ -67,6 +71,8 @@ export const CHANNELS = {
   promoteWorktree: 'wt:promote',
   openJira: 'wt:openJira',
   openPr: 'wt:openPr',
+  dismissError: 'wt:dismissError',
+  openOpsLog: 'log:open',
   createConfig: 'config:create',
   getConfig: 'config:get',
   setConfig: 'config:set',

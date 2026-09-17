@@ -43,6 +43,21 @@ body {
   }
 }
 
+@keyframes wt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wt-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes wt-pulse {
   0%,
   100% {
@@ -165,6 +180,7 @@ body {
 }
 
 .row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -172,6 +188,123 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.12s;
+}
+
+/* destroy in flight — the row is frozen under a red sheet until the poll
+   after completion drops it. Content stays faintly visible so the eye keeps
+   its place in the list. */
+.row.destroying {
+  pointer-events: none;
+  cursor: default;
+}
+
+.row.destroying > :not(.row-overlay) {
+  opacity: 0.12;
+  filter: saturate(0);
+}
+
+/* a solid red sheet — unmistakable, readable on both themes, and it wraps:
+   ticketless labels are whole branch names */
+.row-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 6px 14px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-align: center;
+  animation: wt-overlay-in 0.18s ease-out;
+}
+
+.row-overlay-text {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.row-overlay-text b {
+  font-weight: 700;
+}
+
+.row-spin {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: wt-spin 0.8s linear infinite;
+}
+
+/* a failed command, pinned under its row until dismissed — the toast is
+   gone in two seconds and may never have been seen at all */
+.row-error {
+  margin: 2px 10px 8px 34px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--redbg);
+  border: 1px solid var(--redtx);
+  color: var(--txt);
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: default;
+}
+
+.row-error-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+}
+
+.row-error-title {
+  color: var(--redtx);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.row-error-msg {
+  color: var(--txt2);
+  overflow-wrap: anywhere;
+}
+
+.row-error-detail {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--inset);
+  border: 1px solid var(--insetb);
+  font:
+    10.5px ui-monospace,
+    Menlo,
+    monospace;
+  line-height: 1.4;
+  color: var(--txt2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 120px;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.row-error-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .row:hover,
@@ -204,11 +337,21 @@ body {
   border: 2px solid var(--faint);
 }
 
+/* containers up, app not answering — hollow red ring, steady (not a transition) */
+.dot.unhealthy {
+  background: transparent;
+  border: 2px solid var(--red);
+}
+
 /* unserved ("more") worktree — no stack at all */
 .dot.bare {
   background: transparent;
   border: 2px dotted var(--faint);
   opacity: 0.8;
+}
+
+.dot.merged.unhealthy {
+  color: var(--red);
 }
 
 /* the branch's PR is merged — a merge glyph stands in for the dot so the row
@@ -266,6 +409,11 @@ body {
   color: var(--neutx);
 }
 
+.port.unhealthy {
+  background: var(--redbg);
+  color: var(--redtx);
+}
+
 .port.bare {
   background: transparent;
   color: var(--faint);
@@ -305,6 +453,11 @@ body {
   padding: 3px 7px;
   border-radius: 99px;
   white-space: nowrap;
+}
+
+.transition-pill.unhealthy {
+  color: var(--redtx);
+  background: var(--redbg);
 }
 
 .start-btn {

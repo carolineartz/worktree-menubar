@@ -6,7 +6,7 @@ import type {
   StackStatus,
   WorktreeSnapshot
 } from '../shared/types'
-import { makeMockWorktrees, MOCK_CONFIG, MOCK_STATUSES } from '../shared/mockData'
+import { makeMockWorktrees, MOCK_CONFIG, MOCK_FAIL_DETAIL, MOCK_STATUSES } from '../shared/mockData'
 import type { ConfigSource } from './config'
 import type { StackOps } from './ipcHandlers'
 
@@ -59,7 +59,8 @@ export class MockBackend implements StackOps {
       id,
       kind: 'start',
       ok: true,
-      message: `${label} is up`
+      message: `${label} is up`,
+      detail: null
     }))
   }
 
@@ -68,27 +69,43 @@ export class MockBackend implements StackOps {
       id,
       kind: 'stop',
       ok: true,
-      message: `${label} stopped`
+      message: `${label} stopped`,
+      detail: null
     }))
   }
 
   destroy(id: string, opts: DestroyOptions): void {
     if (!(id in this.statuses)) return
     const served = this.scan().worktrees.find((w) => w.id === id)?.served ?? true
-    this.statuses[id] = 'stopping'
+    this.statuses[id] = 'destroying'
     this.onChange()
     this.timers.push(
       setTimeout(() => {
+        const label = this.labels.get(id) ?? id
+        if (id === 'ltn-101') {
+          // demo of the pinned-failure UI
+          this.statuses[id] = 'stopped'
+          this.onOpDone({
+            id,
+            kind: 'destroy',
+            ok: false,
+            message: `${label}: worktree remove failed`,
+            detail: MOCK_FAIL_DETAIL
+          })
+          this.onChange()
+          return
+        }
         this.destroyed.add(id)
         const what = served ? 'stack, volumes & worktree removed' : 'worktree removed'
         this.onOpDone({
           id,
           kind: 'destroy',
           ok: true,
-          message: `Destroyed ${this.labels.get(id) ?? id} — ${what}${opts.deleteBranch ? ', branch deleted' : ''}`
+          message: `Destroyed ${label} — ${what}${opts.deleteBranch ? ', branch deleted' : ''}`,
+          detail: null
         })
         this.onChange()
-      }, 1200)
+      }, 4000)
     )
   }
 
@@ -104,7 +121,8 @@ export class MockBackend implements StackOps {
           id,
           kind: 'promote',
           ok: true,
-          message: `${this.labels.get(id) ?? id} promoted`
+          message: `${this.labels.get(id) ?? id} promoted`,
+          detail: null
         })
         this.onChange()
       }, 2400)

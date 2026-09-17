@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { parseComposeLs } from '../shared/compose'
+import { logOp } from './opsLog'
 import type { OpResult, StackStatus } from '../shared/types'
 
 const run = promisify(execFile)
@@ -19,13 +20,39 @@ export interface DestroyTarget {
   deleteBranch: boolean
 }
 
-/** first stderr line of a failed execFile, trimmed of git's "fatal: " prefix */
-function stderrOf(err: unknown): string {
-  const e = err as { stderr?: string }
-  return (e.stderr ?? '')
-    .split('\n')[0]
-    .replace(/^(fatal|error): /, '')
-    .trim()
+/** The tail of a failed execFile's stderr (git/docker put the reason last). */
+function stderrOf(err: unknown, lines = 6): string {
+  const e = err as { stderr?: string; message?: string; killed?: boolean }
+  if (e.killed) return 'timed out'
+  const out = (e.stderr ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (out.length === 0) return (e.message ?? '').split('\n')[0]
+  return out
+    .slice(-lines)
+    .map((l) => l.replace(/^(fatal|error): /, ''))
+    .join('\n')
+}
+
+const tail = (s: string, n = 20): string[] => s.split('\n').filter(Boolean).slice(-n)
+
+/** Run a command, logging it and its output to ops.log; rethrows on failure. */
+async function sh(
+  label: string,
+  cmd: string,
+  args: string[],
+  opts: { cwd?: string; timeout: number }
+): Promise<string> {
+  const line = `$ ${cmd} ${args.join(' ')}${opts.cwd ? `   (in ${opts.cwd})` : ''}`
+  try {
+    const { stdout, stderr } = await run(cmd, args, opts)
+    logOp(label, [line, ...tail(stderr || stdout)])
+    return stdout
+  } catch (err) {
+    logOp(`${label} FAILED`, [line, ...tail((err as { stderr?: string }).stderr ?? String(err))])
+    throw err
+  }
 }
 
 export interface ComposeSnapshot {
@@ -40,7 +67,7 @@ export interface ComposeSnapshot {
  * command runs; the poll after completion confirms the real status.
  */
 export class DockerService {
-  private pending = new Map<string, 'starting' | 'stopping'>()
+  private pending = new Map<string, 'starting' | 'stopping' | 'destroying'>()
 
   constructor(private onOpDone: (result: OpResult) => void) {}
 
@@ -53,6 +80,11 @@ export class DockerService {
     } catch {
       return { dockerRunning: false, running: new Map() }
     }
+  }
+
+  /** the optimistic status of an in-flight op, if any (unserved rows use this alone) */
+  pendingFor(id: string): StackStatus | null {
+    return this.pending.get(id) ?? null
   }
 
   statusFor(id: string, composeProject: string, snap: ComposeSnapshot): StackStatus {
@@ -88,7 +120,7 @@ export class DockerService {
    */
   destroy(id: string, opts: DestroyTarget): void {
     if (this.pending.has(id)) return
-    this.pending.set(id, 'stopping')
+    this.pending.set(id, 'destroying')
     void this.destroyAsync(id, opts)
       .then((result) => this.onOpDone(result))
       .finally(() => this.pending.delete(id))
@@ -99,41 +131,67 @@ export class DockerService {
     { dir, repoRoot, label, hasStack, branch, composeProject, deleteBranch }: DestroyTarget
   ): Promise<OpResult> {
     const notes: string[] = []
+    const fail = (message: string, detail: string): OpResult => ({
+      id,
+      kind: 'destroy',
+      ok: false,
+      message: `${label}: ${message}`,
+      detail
+    })
 
     if (hasStack) {
       try {
-        await run('docker', ['compose', '-p', composeProject, 'down', '-v', '--remove-orphans'], {
-          cwd: dir,
-          timeout: 180_000
-        })
-      } catch {
-        notes.push(`docker down failed — run \`docker compose -p ${composeProject} down -v\``)
+        await sh(
+          `destroy ${label}`,
+          'docker',
+          ['compose', '-p', composeProject, 'down', '-v', '--remove-orphans'],
+          {
+            cwd: dir,
+            timeout: 180_000
+          }
+        )
+      } catch (err) {
+        // keep going — the worktree can still be removed; say what's left behind
+        notes.push(
+          `docker down failed (${stderrOf(err, 1)}) — run: docker compose -p ${composeProject} down -v`
+        )
       }
     }
 
     try {
-      // twice: also unlocks a locked worktree
-      await run('git', ['-C', repoRoot, 'worktree', 'remove', '--force', '--force', dir], {
-        timeout: 60_000
-      })
+      // --force twice: also unlocks a locked worktree
+      await sh(
+        `destroy ${label}`,
+        'git',
+        ['-C', repoRoot, 'worktree', 'remove', '--force', '--force', dir],
+        {
+          timeout: 60_000
+        }
+      )
     } catch (err) {
-      const detail = stderrOf(err)
-      return {
-        id,
-        kind: 'destroy',
-        ok: false,
-        message: `${label}: worktree remove failed${detail ? ` — ${detail}` : ''}`
+      const reason = stderrOf(err)
+      if (!/not a working tree|is not a valid|does not exist/i.test(reason)) {
+        return fail(
+          'worktree remove failed',
+          `${reason}\n\nUsually something is holding files open in the folder (an editor, a terminal, a container). Close it and try again, or run:\n  git -C ${repoRoot} worktree remove --force --force ${dir}`
+        )
       }
+      // git already forgot it (a half-finished earlier destroy) — prune is enough
+      notes.push('git had already dropped the worktree')
     }
-    await run('git', ['-C', repoRoot, 'worktree', 'prune'], { timeout: 15_000 }).catch(() => {})
+    await sh(`destroy ${label}`, 'git', ['-C', repoRoot, 'worktree', 'prune'], {
+      timeout: 15_000
+    }).catch(() => {})
 
     let removed = hasStack ? 'stack, volumes & worktree removed' : 'worktree removed'
     if (deleteBranch && branch) {
       try {
-        await run('git', ['-C', repoRoot, 'branch', '-D', branch], { timeout: 15_000 })
+        await sh(`destroy ${label}`, 'git', ['-C', repoRoot, 'branch', '-D', branch], {
+          timeout: 15_000
+        })
         removed += ', branch deleted'
       } catch (err) {
-        notes.push(`branch kept — ${stderrOf(err) || 'git branch -D failed'}`)
+        notes.push(`branch kept — ${stderrOf(err, 1) || 'git branch -D failed'}`)
       }
     }
 
@@ -141,7 +199,8 @@ export class DockerService {
       id,
       kind: 'destroy',
       ok: true,
-      message: `Destroyed ${label} — ${removed}${notes.length ? ` (${notes.join('; ')})` : ''}`
+      message: `Destroyed ${label} — ${removed}${notes.length ? ` (${notes.join('; ')})` : ''}`,
+      detail: null
     }
   }
 
@@ -156,9 +215,17 @@ export class DockerService {
   ): void {
     if (this.pending.has(id)) return // one command per stack at a time
     this.pending.set(id, optimistic)
-    execFile('docker', ['compose', ...args], { cwd: dir, timeout: 180_000 }, (err) => {
-      this.pending.delete(id)
-      this.onOpDone({ id, kind, ok: !err, message: err ? failMsg : okMsg })
-    })
+    sh(`${kind} ${dir}`, 'docker', ['compose', ...args], { cwd: dir, timeout: 180_000 })
+      .then(() => this.onOpDone({ id, kind, ok: true, message: okMsg, detail: null }))
+      .catch((err) =>
+        this.onOpDone({
+          id,
+          kind,
+          ok: false,
+          message: failMsg,
+          detail: `${stderrOf(err)}\n\nTo see the full output run in the worktree:\n  docker compose ${args.join(' ')}`
+        })
+      )
+      .finally(() => this.pending.delete(id))
   }
 }

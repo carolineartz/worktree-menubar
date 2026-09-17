@@ -12,9 +12,16 @@ export const MOCK_CONFIG: Config = {
   promoteCommand: 'work {branch} --local --no-open'
 }
 
+/** stderr a failed destroy would pin under the row */
+export const MOCK_FAIL_DETAIL = `unable to unlink '.husky/_/pre-commit': Operation not permitted
+failed to delete '~/dev/lantern-worktrees/LTN-101': Directory not empty
+
+Usually something is holding files open in the folder (an editor, a terminal, a container). Close it and try again, or run:
+  git -C ~/dev/lantern worktree remove --force --force ~/dev/lantern-worktrees/LTN-101`
+
 export const MOCK_STATUSES: Record<string, StackStatus> = {
   'mdw-214': 'running',
-  'mdw-231': 'running',
+  'mdw-231': 'unhealthy',
   'mdw-198': 'stopped',
   'mdw-247': 'stopped',
   'mdw-loc1': 'stopped',
@@ -179,11 +186,13 @@ export function makeMockWorktrees(
       extras: served ? s.extras : [],
       path: s.path,
       status: statuses[s.id] ?? 'stopped',
+      statusDetail: statuses[s.id] === 'unhealthy' ? 'HTTP 500 at /api/configs' : null,
       served,
       jiraUrl: jiraBrowseUrl(MOCK_CONFIG.jiraBaseUrl, s.branch),
       prUrl: s.prUrl,
       prLabel: s.prLabel,
-      prMerged: s.prMerged ?? false
+      prMerged: s.prMerged ?? false,
+      lastError: null
     }
   })
 }

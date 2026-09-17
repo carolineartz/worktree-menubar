@@ -3,8 +3,9 @@ import { join } from 'node:path'
 
 export interface TrayController {
   tray: Tray
-  /** Show "running/total" beside the icon; running < 0 hides the count. */
-  setCount(running: number, total: number): void
+  /** Show "running/total" beside the icon; running < 0 hides the count.
+   *  alerts appends "!" — a failed command is waiting in the popover. */
+  setCount(running: number, total: number, alerts: boolean): void
 }
 
 export function createTray(handlers: {
@@ -32,9 +33,11 @@ export function createTray(handlers: {
 
   return {
     tray,
-    setCount: (running, total) => {
+    setCount: (running, total, alerts) => {
       // monospacedDigit keeps the icon from shifting as counts change
-      tray.setTitle(running >= 0 ? `${running}/${total}` : '', { fontType: 'monospacedDigit' })
+      const count = running >= 0 ? `${running}/${total}` : ''
+      const title = alerts ? `${count}${count ? ' ' : ''}!` : count
+      tray.setTitle(title, { fontType: 'monospacedDigit' })
     }
   }
 }

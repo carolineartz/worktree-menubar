@@ -2,11 +2,14 @@
 export type WorktreeId = string
 
 /**
- * Derived live from `docker compose ls`; 'starting'/'stopping' are optimistic
- * while an up/stop/down command is in flight. 'promoting' is the unserved-row
- * equivalent: the promote command is running.
+ * Derived live from `docker compose ls`; 'starting'/'stopping'/'destroying'
+ * are optimistic while an up/stop/destroy command is in flight. 'promoting'
+ * is the unserved-row equivalent: the promote command is running. 'unhealthy'
+ * is a stack whose containers are up but has failed the health probe for
+ * longer than a boot could plausibly take.
  */
-export type StackStatus = 'running' | 'starting' | 'stopping' | 'stopped' | 'promoting'
+export type StackStatus =
+  'running' | 'starting' | 'stopping' | 'destroying' | 'stopped' | 'promoting' | 'unhealthy'
 
 export interface ExtraPort {
   /** chip label, e.g. "api" — rendered uppercase */
@@ -27,6 +30,8 @@ export interface WorktreeSnapshot {
   /** display path, ~-abbreviated */
   path: string
   status: StackStatus
+  /** why the probe fails, e.g. "HTTP 500 at /api/configs" — set for starting/unhealthy */
+  statusDetail: string | null
   /** false = no dev port in .env — listed under "more", promotable */
   served: boolean
   /** jiraBaseUrl/browse/<ticket> when configured and the branch has a ticket key */
@@ -35,6 +40,8 @@ export interface WorktreeSnapshot {
   prUrl: string | null
   /** tooltip for the PR button, e.g. "PR #4312 · open" */
   prLabel: string | null
+  /** the last failed command on this worktree, shown under the row until dismissed */
+  lastError: OpError | null
   /** the branch's PR has been merged — the row's dot becomes a merge glyph */
   prMerged: boolean
 }
@@ -112,4 +119,15 @@ export interface OpResult {
   ok: boolean
   /** toast text, e.g. "MDW-214 is up" */
   message: string
+  /** on failure: the command's stderr tail / what to do about it */
+  detail: string | null
+}
+
+/** A failed op, pinned to its row until dismissed or superseded by a success. */
+export interface OpError {
+  kind: OpResult['kind']
+  message: string
+  detail: string | null
+  /** epoch ms */
+  at: number
 }

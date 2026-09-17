@@ -131,12 +131,15 @@ export default function App(): JSX.Element {
       confirm: (wt: WorktreeSnapshot) => {
         void api.destroyWorktree(wt.id, { deleteBranch })
         showToast(`Destroying ${wt.label}…`)
+        setExpandedId((cur) => (cur === wt.id ? null : cur)) // the overlay takes the row
         setConfirmingId(null)
         setConfirmText('')
         setDeleteBranch(false)
       },
       setConfirmText,
-      setDeleteBranch
+      setDeleteBranch,
+      dismissError: (wt: WorktreeSnapshot) => void api.dismissError(wt.id),
+      openOpsLog: () => void api.openOpsLog()
     }),
     [toggleExpand, showToast, deleteBranch]
   )

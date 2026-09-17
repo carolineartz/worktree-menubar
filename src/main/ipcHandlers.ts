@@ -1,4 +1,5 @@
 import { ipcMain, shell } from 'electron'
+import { opsLogPath } from './opsLog'
 import { CHANNELS } from '../shared/ipc'
 import { devUrl } from '../shared/present'
 import type { Config, DestroyOptions, WorktreeId, WorktreeSnapshot } from '../shared/types'
@@ -46,6 +47,10 @@ export function registerIpcHandlers(deps: {
     const url = wt(id)?.prUrl
     if (url) void shell.openExternal(url)
   })
+
+  ipcMain.handle(CHANNELS.dismissError, (_e, id: WorktreeId) => coordinator.clearError(id))
+
+  ipcMain.handle(CHANNELS.openOpsLog, () => void shell.openPath(opsLogPath()))
 
   ipcMain.handle(CHANNELS.openEditor, (_e, id: WorktreeId) => {
     const path = ops.editorPath(id)

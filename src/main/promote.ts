@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import type { OpResult } from '../shared/types'
+import { logOp } from './opsLog'
 
 /**
  * Runs the configured promote command ({branch}/{path} placeholders) to turn
@@ -30,15 +31,19 @@ export class PromoteService {
       '/bin/zsh',
       ['-lc', line],
       { cwd: dir, timeout: 20 * 60_000, maxBuffer: 16 * 1024 * 1024 },
-      (err) => {
+      (err, stdout, stderr) => {
         this.pending.delete(id)
+        logOp(`promote ${label}${err ? ' FAILED' : ''}`, [
+          `$ ${line}   (in ${dir})`,
+          ...`${stdout}\n${stderr}`.split('\n').filter(Boolean).slice(-30)
+        ])
+        const tail = (stderr || stdout).split('\n').filter(Boolean).slice(-6).join('\n')
         this.onOpDone({
           id,
           kind: 'promote',
           ok: !err,
-          message: err
-            ? `${label} promote failed — run it in a terminal to see why`
-            : `${label} promoted`
+          message: err ? `${label} promote failed` : `${label} promoted`,
+          detail: err ? `${tail}\n\nRe-run in a terminal to see everything:\n  ${line}` : null
         })
       }
     )
