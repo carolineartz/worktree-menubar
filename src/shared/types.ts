@@ -26,10 +26,11 @@ export interface WorktreeSnapshot {
   branch: string
   /** the dev-server (FE) port — null for unserved worktrees */
   port: number | null
-  /** WORK_HOST from .env, e.g. "rb-4047.localhost" — a shared-Traefik hostname,
-   *  preferred over the port for the open-in-browser URL. Absent on worktrees
-   *  not yet re-run through `work`. */
-  host?: string
+  /** the worktree's directory name, e.g. "CFE-3466" — the row's pill */
+  dir: string
+  /** what open-in-browser opens: the WORK_HOST hostname when the .env has one,
+   *  else the port URL; null for unserved worktrees */
+  url: string | null
   extras: ExtraPort[]
   /** display path, ~-abbreviated */
   path: string
@@ -92,10 +93,11 @@ export interface Config {
    */
   jiraBaseUrl: string
   /**
-   * Shell command that turns an unserved worktree into a served one
-   * ({branch} and {path} placeholders; runs with the worktree as cwd),
-   * e.g. "cutover-work {branch} --local --no-open". Empty string hides
-   * the Promote button.
+   * Shell command that prepares and boots a worktree's stack ({branch} and
+   * {path} placeholders; runs with the worktree as cwd), e.g.
+   * "cutover-work {branch} --no-open". Runs on Promote (unserved rows) and on
+   * Start (stopped rows). Empty string hides the Promote button and makes
+   * Start a plain `docker compose up -d`.
    */
   promoteCommand: string
   includeMainCheckout: boolean

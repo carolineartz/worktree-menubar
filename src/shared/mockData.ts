@@ -1,4 +1,4 @@
-import { jiraBrowseUrl } from './present'
+import { jiraBrowseUrl, worktreeUrl } from './present'
 import type { Config, StackStatus, WorktreeSnapshot } from './types'
 import { DEFAULT_CONFIG } from './types'
 
@@ -8,8 +8,9 @@ export const MOCK_CONFIG: Config = {
   ...DEFAULT_CONFIG,
   repos: ['~/dev/meadow', '~/dev/lantern'],
   urlTemplate: 'http://localhost:{port}/#/login',
+  hostUrlTemplate: 'http://{host}/#/login',
   jiraBaseUrl: 'https://meadow.atlassian.net',
-  promoteCommand: 'work {branch} --local --no-open'
+  promoteCommand: 'work {branch} --no-open'
 }
 
 /** stderr a failed destroy would pin under the row */
@@ -39,6 +40,8 @@ interface MockSeed {
   port: number
   extras: { key: string; port: number }[]
   path: string
+  /** WORK_HOST once served; omitted = a stack not yet re-run through `work` */
+  host?: string
   served: boolean
   prUrl: string | null
   prLabel: string | null
@@ -58,6 +61,7 @@ const SEEDS: MockSeed[] = [
       { key: 'db', port: 5436 }
     ],
     path: '~/dev/meadow-worktrees/MDW-214',
+    host: 'mdw-214.localhost',
     served: true,
     prUrl: 'https://github.com/meadow/meadow/pull/4312',
     prLabel: 'PR #4312 · open'
@@ -74,6 +78,7 @@ const SEEDS: MockSeed[] = [
       { key: 'db', port: 5437 }
     ],
     path: '~/dev/meadow-worktrees/MDW-231',
+    host: 'mdw-231.localhost',
     served: true,
     prUrl: null,
     prLabel: null
@@ -107,6 +112,7 @@ const SEEDS: MockSeed[] = [
       { key: 'db', port: 5439 }
     ],
     path: '~/dev/meadow-worktrees/MDW-247',
+    host: 'mdw-247.localhost',
     served: false,
     prUrl: null,
     prLabel: null
@@ -118,7 +124,7 @@ const SEEDS: MockSeed[] = [
     branch: 'fix-flaky-modal-tests',
     port: 9006,
     extras: [],
-    path: '~/dev/meadow-worktrees/LOC-1',
+    path: '~/dev/meadow-worktrees/NO-TICKET-1',
     served: false,
     prUrl: 'https://github.com/meadow/meadow/pull/4330',
     prLabel: 'PR #4330 · draft'
@@ -134,6 +140,7 @@ const SEEDS: MockSeed[] = [
       { key: 'db', port: 5501 }
     ],
     path: '~/dev/lantern-worktrees/LTN-87',
+    host: 'ltn-87.localhost',
     served: true,
     prUrl: null,
     prLabel: null
@@ -148,7 +155,8 @@ const SEEDS: MockSeed[] = [
       { key: 'api', port: 3102 },
       { key: 'db', port: 5502 }
     ],
-    path: '~/dev/lantern-worktrees/LTN-92',
+    path: '~/dev/lantern-worktrees/claude-quirky-hopper-7a1c2e',
+    host: 'claude-quirky-hopper-7a1c2e.localhost',
     served: true,
     prUrl: 'https://github.com/lantern/lantern/pull/812',
     prLabel: 'PR #812 · open'
@@ -161,6 +169,7 @@ const SEEDS: MockSeed[] = [
     port: 9103,
     extras: [{ key: 'api', port: 3103 }],
     path: '~/dev/lantern-worktrees/LTN-101',
+    host: 'ltn-101.localhost',
     served: false,
     prUrl: 'https://github.com/lantern/lantern/pull/799',
     prLabel: 'PR #799 · merged into main',
@@ -177,12 +186,15 @@ export function makeMockWorktrees(
 ): WorktreeSnapshot[] {
   return SEEDS.filter((s) => !destroyed?.has(s.id)).map((s) => {
     const served = s.served || (promoted?.has(s.id) ?? false)
+    const port = served ? s.port : null
     return {
       id: s.id,
       repo: s.repo,
       label: s.label,
       branch: s.branch,
-      port: served ? s.port : null,
+      port,
+      dir: s.path.slice(s.path.lastIndexOf('/') + 1),
+      url: served ? worktreeUrl({ port, host: s.host }, MOCK_CONFIG) : null,
       extras: served ? s.extras : [],
       path: s.path,
       status: statuses[s.id] ?? 'stopped',

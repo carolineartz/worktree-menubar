@@ -1,9 +1,9 @@
 import { app, Menu, nativeTheme, Notification } from 'electron'
 import { electronApp } from '@electron-toolkit/utils'
 import { execFile } from 'node:child_process'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { CHANNELS } from '../shared/ipc'
-import { jiraBrowseUrl } from '../shared/present'
+import { jiraBrowseUrl, worktreeUrl } from '../shared/present'
 import type { OpResult, StackStatus, WorktreeSnapshot } from '../shared/types'
 import { ConfigStore } from './config'
 import { Coordinator } from './coordinator'
@@ -140,6 +140,7 @@ app.whenReady().then(() => {
             detail: null
           }
         }
+        if (promoter.isPromoting(s.id)) return { status: 'starting', detail: null }
         const base = docker.statusFor(s.id, s.composeProject, snap)
         const probe =
           healthPath && base === 'running' ? await probeHealth(s.port, healthPath) : null
@@ -147,7 +148,8 @@ app.whenReady().then(() => {
         return { status: h.status, detail: h.detail ? `${h.detail} at ${healthPath}` : null }
       })
     )
-    const jiraBase = config.get().jiraBaseUrl
+    const cfg = config.get()
+    const jiraBase = cfg.jiraBaseUrl
     const worktrees: WorktreeSnapshot[] = scanned.map((s, i) => {
       const pr = prLinks.get(s.repoRoot, s.branch)
       return {
@@ -156,7 +158,8 @@ app.whenReady().then(() => {
         label: s.label,
         branch: s.branch,
         port: s.port,
-        host: s.host ?? undefined,
+        dir: basename(s.absPath),
+        url: s.served ? worktreeUrl(s, cfg) : null,
         extras: s.extras,
         path: s.path,
         status: statuses[i].status,
@@ -175,7 +178,10 @@ app.whenReady().then(() => {
   const ops: StackOps = mock ?? {
     start: (id) => {
       const s = lastScan.get(id)
-      if (s) docker.start(id, s.absPath, s.label)
+      if (!s) return
+      const cmd = config.get().promoteCommand
+      if (cmd.trim()) promoter.promote(id, s.absPath, s.branch, s.label, cmd, 'start')
+      else docker.start(id, s.absPath, s.label)
     },
     stop: (id) => {
       const s = lastScan.get(id)

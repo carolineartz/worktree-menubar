@@ -60,3 +60,15 @@ export function worktreeUrl(
   if (wt.host) return hostUrl(cfg.hostUrlTemplate, wt.host)
   return wt.port != null ? devUrl(cfg.urlTemplate, wt.port) : null
 }
+
+/** A URL as the row's subline shows it — no scheme, no path:
+ *  "http://cfe-3466.localhost/#/login" → "cfe-3466.localhost". */
+export function displayUrl(url: string): string {
+  return url.replace(/^[a-z]+:\/\//i, '').replace(/[/?#].*$/, '')
+}
+
+/** The row pill's name for a worktree dir — ticketless dirs shortened the
+ *  way `work` shortens their hostname: "NO-TICKET-3" → "NT-3". */
+export function pillLabel(dir: string): string {
+  return dir.replace(/^NO-TICKET-(?=\d)/, 'NT-')
+}

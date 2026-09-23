@@ -78,7 +78,7 @@ export default function SettingsApp(): JSX.Element {
         <TextField
           label="Promote command"
           value={config.promoteCommand}
-          placeholder="cutover-work {branch} --local --no-open"
+          placeholder="cutover-work {branch} --no-open"
           onCommit={(v) => patch({ promoteCommand: v.trim() })}
         />
       </Section>

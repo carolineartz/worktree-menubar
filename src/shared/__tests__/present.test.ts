@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   devUrl,
+  displayUrl,
   hostUrl,
   jiraBrowseUrl,
+  pillLabel,
   repoHue,
   repoTint,
   ticketFrom,
@@ -114,6 +116,30 @@ describe('worktreeUrl', () => {
 
   it('is null when neither a host nor a port is available', () => {
     expect(worktreeUrl({ port: null, host: null }, cfg)).toBeNull()
+  })
+})
+
+describe('displayUrl', () => {
+  it('drops the scheme and path', () => {
+    expect(displayUrl('http://cfe-3466.localhost/#/login')).toBe('cfe-3466.localhost')
+    expect(displayUrl('http://rb-4047.localhost')).toBe('rb-4047.localhost')
+  })
+
+  it('keeps a port', () => {
+    expect(displayUrl('http://localhost:9002/#/login')).toBe('localhost:9002')
+  })
+})
+
+describe('pillLabel', () => {
+  it('shortens NO-TICKET-<n> to NT-<n>', () => {
+    expect(pillLabel('NO-TICKET-3')).toBe('NT-3')
+    expect(pillLabel('NO-TICKET-12')).toBe('NT-12')
+  })
+
+  it('leaves other dir names alone', () => {
+    expect(pillLabel('CFE-3466')).toBe('CFE-3466')
+    expect(pillLabel('NO-TICKET-fix')).toBe('NO-TICKET-fix')
+    expect(pillLabel('adoring-goldstine-5c3829')).toBe('adoring-goldstine-5c3829')
   })
 })
 

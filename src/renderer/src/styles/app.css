@@ -79,9 +79,15 @@ body {
 
 /* ---- worktree list ---- */
 
+/* vertical-only: tooltips are laid out even while invisible, so anything
+   wider than the list would otherwise leave a horizontal scroll behind.
+   The inline-size container gives tooltips 100cqw = the list's width
+   minus any scrollbar. */
 .list {
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
+  container-type: inline-size;
 }
 
 /* natural-height wrapper: the window auto-sizes to this, not the stretched .list */
@@ -380,18 +386,32 @@ body {
   transform: none;
 }
 
-/* the key scanning affordance — an aligned column of port numbers */
+/* the key scanning affordance — an aligned column of worktree directory
+   names. Fixed width keeps the column aligned; sized for a ticket key,
+   anything longer (agent-named dirs) is clipped with the full name on hover */
 .port {
   flex: none;
+  display: flex;
   font-family: ui-monospace, Menlo, monospace;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   padding: 4px 7px;
   border-radius: 6px;
-  min-width: 52px;
-  text-align: center;
+  width: 80px;
+  justify-content: center;
   white-space: nowrap;
+}
+
+.port-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.port[data-tip]::after {
+  left: 0;
+  transform: none;
 }
 
 .port.running {
@@ -417,15 +437,6 @@ body {
 .port.bare {
   background: transparent;
   color: var(--faint);
-}
-
-/* hostname address in place of the port number — no fixed width, but capped
-   so a long WORK_HOST can't push the row's icons off the edge */
-.port.addr {
-  min-width: 0;
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .row-main {
@@ -469,24 +480,22 @@ body {
   background: var(--redbg);
 }
 
+/* borderless green play, sized like the open-in-browser button it replaces */
 .start-btn {
   flex: none;
+  width: 22px;
+  height: 20px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   background: transparent;
-  border: 1px solid var(--btnb);
-  border-radius: 6px;
-  color: var(--greentx);
-  font-size: 11px;
-  font-weight: 500;
-  font-family: inherit;
-  padding: 3px 9px;
+  border: none;
+  border-radius: 5px;
+  padding: 0;
   cursor: pointer;
 }
 
 .start-btn:hover {
-  border-color: var(--greentx);
   background: var(--greenbg);
 }
 
@@ -718,14 +727,16 @@ body {
 
 /* truncated branch name: the tip sits over the text in place (Finder-style)
    and in the same face, so it reads as the name un-clipped. Wraps if longer
-   than the row, and stays inside the list's scroll clip. */
+   than the row. The branch column starts 118px into the list and the tip
+   7px left of it, so 117px keeps a 6px gap to the list's right edge. */
 .row-main[data-tip]::after {
   top: -3px;
   bottom: auto;
   left: -7px;
   transform: none;
+  box-sizing: border-box;
   width: max-content;
-  max-width: calc(100vw - 118px);
+  max-width: calc(100cqw - 117px);
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: left;

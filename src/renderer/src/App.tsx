@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type MouseEvent } from 'react'
 import type { AppState } from '../../shared/ipc'
+import { displayUrl } from '../../shared/present'
 import type { WorktreeSnapshot } from '../../shared/types'
 import { api } from './lib/api'
 import { FooterBar } from './components/FooterBar'
@@ -90,7 +91,7 @@ export default function App(): JSX.Element {
         // Default: expand/collapse. ⌘-click opens the site (running rows only).
         if (e.metaKey && wt.status === 'running') {
           void api.openUrl(wt.id)
-          showToast(`Opened localhost:${wt.port} ↗`)
+          showToast(`Opened ${wt.url ? displayUrl(wt.url) : wt.label} ↗`)
           return
         }
         toggleExpand(wt.id)
@@ -98,7 +99,7 @@ export default function App(): JSX.Element {
       toggleExpand,
       openUrl: (wt: WorktreeSnapshot) => {
         void api.openUrl(wt.id)
-        showToast(`Opened localhost:${wt.port} ↗`)
+        showToast(`Opened ${wt.url ? displayUrl(wt.url) : wt.label} ↗`)
       },
       openEditor: (wt: WorktreeSnapshot) => {
         void api.openEditor(wt.id)

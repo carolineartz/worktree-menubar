@@ -27,7 +27,7 @@ export interface Invokers {
   openUrl(id: WorktreeId): Promise<void>
   /** open the worktree directory with the configured editor command */
   openEditor(id: WorktreeId): Promise<void>
-  /** docker compose up -d */
+  /** the promote command when one is configured, else docker compose up -d */
   startStack(id: WorktreeId): Promise<void>
   /** docker compose stop */
   stopStack(id: WorktreeId): Promise<void>

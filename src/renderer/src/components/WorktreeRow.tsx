@@ -1,4 +1,5 @@
 import { useRef, useState, type JSX, type MouseEvent } from 'react'
+import { displayUrl, pillLabel } from '../../../shared/present'
 import type { WorktreeSnapshot } from '../../../shared/types'
 import {
   ChevronDown,
@@ -123,6 +124,13 @@ export function WorktreeRow({
     const el = branchRef.current
     setBranchTip(el && el.scrollWidth > el.clientWidth ? wt.branch : undefined)
   }
+  // same for a directory name too long for the pill
+  const dirRef = useRef<HTMLSpanElement>(null)
+  const [dirTip, setDirTip] = useState<string | undefined>()
+  const measureDir = (): void => {
+    const el = dirRef.current
+    setDirTip(el && el.scrollWidth > el.clientWidth ? wt.dir : undefined)
+  }
 
   return (
     <>
@@ -149,21 +157,18 @@ export function WorktreeRow({
         ) : (
           <span className={`dot ${tone}`} />
         )}
-        {wt.host ? (
-          <>
-            <span className={`port addr ${tone}`} data-tip={wt.host}>
-              {wt.host}
-            </span>
-            {wt.port != null && <span className="chip">{wt.port}</span>}
-          </>
-        ) : (
-          <span className={`port ${tone}`}>{wt.port ?? '—'}</span>
-        )}
+        {/* the tip lives on the pill, the clipping on its text — an
+            overflow:hidden element would clip its own ::after tooltip */}
+        <span className={`port ${tone}`} data-tip={dirTip} onMouseEnter={measureDir}>
+          <span className="port-text" ref={dirRef}>
+            {pillLabel(wt.dir)}
+          </span>
+        </span>
         <div className="row-main" data-tip={branchTip} onMouseEnter={measureBranch}>
           <div className="branch" ref={branchRef}>
             {wt.branch}
           </div>
-          <div className="meta">{wt.label}</div>
+          <div className="meta">{wt.url ? displayUrl(wt.url) : 'not served'}</div>
         </div>
         {wt.status === 'running' && (
           <button
@@ -193,13 +198,15 @@ export function WorktreeRow({
         )}
         {isStopped && wt.served && !expanded && (
           <button
-            className="start-btn"
+            className="start-btn tip-right"
+            data-tip="Start"
+            aria-label="Start"
             onClick={(e) => {
               e.stopPropagation()
               actions.start(wt)
             }}
           >
-            ▶ Start
+            <Start />
           </button>
         )}
         {isStopped && !wt.served && canPromote && !expanded && (
