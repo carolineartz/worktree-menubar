@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
-import type { Config } from '../../../shared/types'
+import { TERMINAL_LABELS, type Config, type TerminalApp } from '../../../shared/types'
 import { api } from '../lib/api'
 
 export default function SettingsApp(): JSX.Element {
@@ -83,11 +83,12 @@ export default function SettingsApp(): JSX.Element {
         />
       </Section>
 
-      <Section title="Editor">
+      <Section title="Editor" hint="Leave the command empty to hide the editor button.">
         <TextField
           label="Open in editor with"
           value={config.editorCommand}
-          onCommit={(v) => patch({ editorCommand: v.trim() || 'code' })}
+          placeholder="code"
+          onCommit={(v) => patch({ editorCommand: v.trim() })}
         />
         <label className="toggle-row">
           <input
@@ -97,6 +98,44 @@ export default function SettingsApp(): JSX.Element {
           />
           Include the main checkout
         </label>
+      </Section>
+
+      <Section
+        title="Claude"
+        hint={
+          config.terminal === 'custom'
+            ? '{script} cds into the worktree and runs the Claude command; {path} and {command} are filled in too.'
+            : 'The Claude button starts a new session, or resumes one with --resume, in a terminal at the worktree. Leave the command empty to hide the button.'
+        }
+      >
+        <TextField
+          label="Claude command"
+          value={config.claudeCommand}
+          placeholder="claude"
+          onCommit={(v) => patch({ claudeCommand: v.trim() })}
+        />
+        <div className="field-row">
+          <span className="label grow">Terminal</span>
+          <div className="theme-seg">
+            {(Object.keys(TERMINAL_LABELS) as TerminalApp[]).map((t) => (
+              <button
+                key={t}
+                className={config.terminal === t ? 'seg-btn active' : 'seg-btn'}
+                onClick={() => patch({ terminal: t })}
+              >
+                {TERMINAL_LABELS[t]}
+              </button>
+            ))}
+          </div>
+        </div>
+        {config.terminal === 'custom' && (
+          <TextField
+            label="Launch with"
+            value={config.terminalCommand}
+            placeholder="open -na Ghostty --args -e {script}"
+            onCommit={(v) => patch({ terminalCommand: v.trim() })}
+          />
+        )}
       </Section>
 
       <Section title="General" gap={10}>

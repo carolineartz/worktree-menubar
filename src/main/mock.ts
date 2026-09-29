@@ -129,7 +129,7 @@ export class MockBackend implements StackOps {
     )
   }
 
-  editorPath(): string | null {
+  worktreePath(): string | null {
     return null // nothing real to open in mock mode
   }
 

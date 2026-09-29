@@ -9,6 +9,7 @@ export const MOCK_CONFIG: Config = {
   repos: ['~/dev/meadow', '~/dev/lantern'],
   urlTemplate: 'http://localhost:{port}/#/login',
   hostUrlTemplate: 'http://{host}/#/login',
+  editorCommand: 'code',
   jiraBaseUrl: 'https://meadow.atlassian.net',
   promoteCommand: 'work {branch} --no-open'
 }
@@ -46,6 +47,7 @@ interface MockSeed {
   prUrl: string | null
   prLabel: string | null
   prMerged?: boolean
+  claudeSessions?: number
 }
 
 const SEEDS: MockSeed[] = [
@@ -63,6 +65,7 @@ const SEEDS: MockSeed[] = [
     path: '~/dev/meadow-worktrees/MDW-214',
     host: 'mdw-214.localhost',
     served: true,
+    claudeSessions: 3,
     prUrl: 'https://github.com/meadow/meadow/pull/4312',
     prLabel: 'PR #4312 · open'
   },
@@ -114,6 +117,7 @@ const SEEDS: MockSeed[] = [
     path: '~/dev/meadow-worktrees/MDW-247',
     host: 'mdw-247.localhost',
     served: false,
+    claudeSessions: 2,
     prUrl: null,
     prLabel: null
   },
@@ -142,6 +146,7 @@ const SEEDS: MockSeed[] = [
     path: '~/dev/lantern-worktrees/LTN-87',
     host: 'ltn-87.localhost',
     served: true,
+    claudeSessions: 1,
     prUrl: null,
     prLabel: null
   },
@@ -204,6 +209,7 @@ export function makeMockWorktrees(
       prUrl: s.prUrl,
       prLabel: s.prLabel,
       prMerged: s.prMerged ?? false,
+      claudeSessions: s.claudeSessions ?? 0,
       lastError: null
     }
   })

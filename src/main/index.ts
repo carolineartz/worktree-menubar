@@ -4,7 +4,13 @@ import { execFile } from 'node:child_process'
 import { basename, join } from 'node:path'
 import { CHANNELS } from '../shared/ipc'
 import { jiraBrowseUrl, worktreeUrl } from '../shared/present'
-import type { OpResult, StackStatus, WorktreeSnapshot } from '../shared/types'
+import {
+  TERMINAL_LABELS,
+  type OpResult,
+  type StackStatus,
+  type WorktreeSnapshot
+} from '../shared/types'
+import { countClaudeSessions, launchClaude } from './claude'
 import { ConfigStore } from './config'
 import { Coordinator } from './coordinator'
 import { DockerService } from './docker'
@@ -15,6 +21,7 @@ import { PromoteService } from './promote'
 import type { StackOps } from './ipcHandlers'
 import { registerIpcHandlers } from './ipcHandlers'
 import { MockBackend, MockConfigStore, type MockScenario } from './mock'
+import { logOp } from './opsLog'
 import { Poller } from './poller'
 import { createPopover } from './popover'
 import { captureScreenshots } from './screenshot'
@@ -148,6 +155,7 @@ app.whenReady().then(() => {
         return { status: h.status, detail: h.detail ? `${h.detail} at ${healthPath}` : null }
       })
     )
+    const sessions = await Promise.all(scanned.map((s) => countClaudeSessions(s.absPath)))
     const cfg = config.get()
     const jiraBase = cfg.jiraBaseUrl
     const worktrees: WorktreeSnapshot[] = scanned.map((s, i) => {
@@ -169,6 +177,7 @@ app.whenReady().then(() => {
         prUrl: pr?.url ?? null,
         prLabel: pr?.label ?? null,
         prMerged: pr?.merged ?? false,
+        claudeSessions: sessions[i],
         lastError: null // filled in by the coordinator
       }
     })
@@ -206,7 +215,7 @@ app.whenReady().then(() => {
         promoter.promote(id, s.absPath, s.branch, s.label, config.get().promoteCommand)
       }
     },
-    editorPath: (id) => lastScan.get(id)?.absPath ?? null
+    worktreePath: (id) => lastScan.get(id)?.absPath ?? null
   }
 
   const poller = new Poller(
@@ -226,9 +235,28 @@ app.whenReady().then(() => {
     ops,
     refresh: () => poller.refresh(),
     openEditor: (path) => {
-      const cmd = config.get().editorCommand.trim() || 'code'
+      const cmd = config.get().editorCommand.trim()
+      if (!cmd) return
       // login shell so GUI-launched instances still resolve PATH entries
       execFile('/bin/zsh', ['-lc', `${cmd} ${JSON.stringify(path)}`], () => {})
+    },
+    launchClaude: (id, path, mode) => {
+      const cfg = config.get()
+      if (!cfg.claudeCommand.trim()) return
+      const label = lastScan.get(id)?.label ?? basename(path)
+      launchClaude(path, mode, cfg).catch((err: unknown) => {
+        const detail = err instanceof Error ? err.message : String(err)
+        const where =
+          cfg.terminal === 'custom' ? 'the custom terminal' : TERMINAL_LABELS[cfg.terminal]
+        logOp(`claude ${label} FAILED`, [`terminal: ${cfg.terminal}   (in ${path})`, detail])
+        onOpDone({
+          id,
+          kind: 'claude',
+          ok: false,
+          message: `${label}: couldn't open Claude in ${where}`,
+          detail
+        })
+      })
     },
     openSettingsWindow,
     onConfigChanged: () => {

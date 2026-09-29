@@ -1,13 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppState, RendererApi } from '../shared/ipc'
 import { CHANNELS } from '../shared/ipc'
-import type { Config, DestroyOptions, OpResult, WorktreeId } from '../shared/types'
+import type { ClaudeMode, Config, DestroyOptions, OpResult, WorktreeId } from '../shared/types'
 
 const api: RendererApi = {
   getState: () => ipcRenderer.invoke(CHANNELS.getState),
   refresh: () => ipcRenderer.invoke(CHANNELS.refresh),
   openUrl: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.openUrl, id),
   openEditor: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.openEditor, id),
+  launchClaude: (id: WorktreeId, mode: ClaudeMode) =>
+    ipcRenderer.invoke(CHANNELS.launchClaude, id, mode),
   startStack: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.startStack, id),
   stopStack: (id: WorktreeId) => ipcRenderer.invoke(CHANNELS.stopStack, id),
   destroyWorktree: (id: WorktreeId, opts: DestroyOptions) =>

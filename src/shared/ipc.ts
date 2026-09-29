@@ -1,4 +1,5 @@
 import type {
+  ClaudeMode,
   Config,
   ConfigState,
   DestroyOptions,
@@ -27,6 +28,8 @@ export interface Invokers {
   openUrl(id: WorktreeId): Promise<void>
   /** open the worktree directory with the configured editor command */
   openEditor(id: WorktreeId): Promise<void>
+  /** open the configured terminal in the worktree running the Claude command */
+  launchClaude(id: WorktreeId, mode: ClaudeMode): Promise<void>
   /** the promote command when one is configured, else docker compose up -d */
   startStack(id: WorktreeId): Promise<void>
   /** docker compose stop */
@@ -65,6 +68,7 @@ export const CHANNELS = {
   refresh: 'refresh',
   openUrl: 'wt:openUrl',
   openEditor: 'wt:openEditor',
+  launchClaude: 'wt:claude',
   startStack: 'wt:start',
   stopStack: 'wt:stop',
   destroyWorktree: 'wt:destroy',

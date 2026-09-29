@@ -22,7 +22,9 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R (o
 
 - **Click a row** → expands it (worktree path, port chips, action strip). **⌘-click** a running row opens its dev URL directly.
 - Each running row has an **open-in-browser** button (left of the chevron); stopped rows show a green **▶** start button (the `promoteCommand` when one is configured, else `docker compose up -d`).
-- **Expanded panel** → a strip of borderless icon actions: open in browser · editor · green **start** · amber **stop** (`docker compose stop`), then Jira / GitHub-PR links and a red **destroy** aligned right. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Branch names too long for the row are truncated; pausing on one shows the full name. Unserved rows get editor + `↑ Promote` instead of the stack actions.
+- **Expanded panel** → a strip of borderless icon actions: green **start** · amber **stop** (`docker compose stop`) · open in browser on the left; editor · Claude · Jira · GitHub-PR on the right, then a red **destroy** set apart at the end. Icons that don't currently apply (already running, no PR yet, no ticket key) stay in place but grayed out; hovering any icon for a beat shows its label. Branch names too long for the row are truncated; pausing on one shows the full name. Unserved rows get editor + `↑ Promote` instead of the stack actions.
+- **Editor** runs `editorCommand` with the worktree path; the button only appears once a command is set.
+- **Claude** opens a menu: **New session** runs `claudeCommand` in a new terminal window at the worktree, **Resume session…** runs it with `--resume` (Claude Code's picker for that directory; grayed out until the worktree has a session, with the count shown beside it). `terminal` picks Terminal, iTerm or Warp, or `custom` runs `terminalCommand` with `{script}` (a script that cds into the worktree and runs the command), `{path}` and `{command}` filled in. When the command exits the window stays on a shell in the worktree. Empty `claudeCommand` hides the button.
 - **↑ Promote** runs the configured `promoteCommand` ({branch}/{path} placeholders, cwd = the worktree) to give an unserved worktree ports/.env and boot it — e.g. a `cutover-work`-style script. Hidden until a command is configured.
 - **Destroy** (full cleanup: `docker compose down -v --remove-orphans` → `git worktree remove --force` → prune, **keeps the branch**) requires typing `DESTROY`. Force is deliberate: real worktrees always carry untracked files (`.husky/_`, `.env`, `node_modules`) that make the non-force remove refuse, so typing `DESTROY` is the confirmation — uncommitted work in that worktree is gone. Tick **+ branch** next to the input (off by default) to also `git branch -D` the local branch. The row disappears as soon as the command finishes. Destroying an unserved worktree skips the docker step; if docker down fails the worktree is still removed and the toast names the compose project to clean up by hand. Volume cleanup only happens here — stop never touches data.
 - **Merged indicator** — when the branch's PR is merged (per `gh pr view`), the row's status dot (or the dotted circle on unserved rows) becomes a purple merge glyph: done, safe to destroy. Hover it for the PR number and base branch. Open PRs are rechecked every ~3 min so a merge shows up soon after.
@@ -42,6 +44,9 @@ Everything refreshes every ~10 s (configurable), on popover open, and on ⌘R (o
   "hostUrlTemplate": "http://{host}/#/login",
   "composeProjectKey": "COMPOSE_PROJECT_NAME",
   "editorCommand": "code",
+  "claudeCommand": "claude",
+  "terminal": "warp",
+  "terminalCommand": "",
   "jiraBaseUrl": "https://yourteam.atlassian.net",
   "promoteCommand": "cutover-work {branch} --no-open",
   "includeMainCheckout": false,

@@ -32,6 +32,8 @@ interface RowProps {
   deleteBranch: boolean
   canPromote: boolean
   jiraEnabled: boolean
+  editorEnabled: boolean
+  claudeEnabled: boolean
   actions: RowActions
 }
 
@@ -46,6 +48,8 @@ function rowsFor(rows: WorktreeSnapshot[], p: RowProps): JSX.Element[] {
       deleteBranch={p.deleteBranch}
       canPromote={p.canPromote}
       jiraEnabled={p.jiraEnabled}
+      editorEnabled={p.editorEnabled}
+      claudeEnabled={p.claudeEnabled}
       actions={p.actions}
     />
   ))
@@ -80,6 +84,8 @@ export function WorktreeList({
   deleteBranch,
   canPromote,
   jiraEnabled,
+  editorEnabled,
+  claudeEnabled,
   actions
 }: {
   worktrees: WorktreeSnapshot[]
@@ -89,6 +95,8 @@ export function WorktreeList({
   deleteBranch: boolean
   canPromote: boolean
   jiraEnabled: boolean
+  editorEnabled: boolean
+  claudeEnabled: boolean
   actions: RowActions
 }): JSX.Element {
   const p: RowProps = {
@@ -98,6 +106,8 @@ export function WorktreeList({
     deleteBranch,
     canPromote,
     jiraEnabled,
+    editorEnabled,
+    claudeEnabled,
     actions
   }
   return (

@@ -1,7 +1,13 @@
 import { ipcMain, shell } from 'electron'
 import { opsLogPath } from './opsLog'
 import { CHANNELS } from '../shared/ipc'
-import type { Config, DestroyOptions, WorktreeId, WorktreeSnapshot } from '../shared/types'
+import type {
+  ClaudeMode,
+  Config,
+  DestroyOptions,
+  WorktreeId,
+  WorktreeSnapshot
+} from '../shared/types'
 import type { Coordinator } from './coordinator'
 import type { ConfigSource } from './config'
 
@@ -10,8 +16,8 @@ export interface StackOps {
   stop(id: WorktreeId): void
   destroy(id: WorktreeId, opts: DestroyOptions): void
   promote(id: WorktreeId): void
-  /** absolute path for the editor command (mock returns null → no-op) */
-  editorPath(id: WorktreeId): string | null
+  /** absolute path for the editor and Claude commands (mock returns null → no-op) */
+  worktreePath(id: WorktreeId): string | null
 }
 
 export function registerIpcHandlers(deps: {
@@ -20,6 +26,7 @@ export function registerIpcHandlers(deps: {
   ops: StackOps
   refresh: () => void
   openEditor: (path: string) => void
+  launchClaude: (id: WorktreeId, path: string, mode: ClaudeMode) => void
   openSettingsWindow: () => void
   onConfigChanged: () => void
   resizePopover: (height: number) => void
@@ -52,8 +59,13 @@ export function registerIpcHandlers(deps: {
   ipcMain.handle(CHANNELS.openOpsLog, () => void shell.openPath(opsLogPath()))
 
   ipcMain.handle(CHANNELS.openEditor, (_e, id: WorktreeId) => {
-    const path = ops.editorPath(id)
+    const path = ops.worktreePath(id)
     if (path) deps.openEditor(path)
+  })
+
+  ipcMain.handle(CHANNELS.launchClaude, (_e, id: WorktreeId, mode: ClaudeMode) => {
+    const path = ops.worktreePath(id)
+    if (path) deps.launchClaude(id, path, mode === 'resume' ? 'resume' : 'new')
   })
 
   // re-poll rather than republish: the optimistic starting…/stopping… status

@@ -66,6 +66,7 @@ function createMockApi(): RendererApi {
     },
     openUrl: async (id) => console.log('[mock] open url', id),
     openEditor: async (id) => console.log('[mock] open editor', id),
+    launchClaude: async (id, mode) => console.log('[mock] claude', mode, id),
     startStack: async (id) =>
       transition(id, 'starting', 'running', 1400, (label) => ({
         id,

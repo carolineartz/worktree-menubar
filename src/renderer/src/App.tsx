@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type MouseEvent } from 'react'
 import type { AppState } from '../../shared/ipc'
 import { displayUrl } from '../../shared/present'
-import type { WorktreeSnapshot } from '../../shared/types'
+import type { ClaudeMode, WorktreeSnapshot } from '../../shared/types'
 import { api } from './lib/api'
 import { FooterBar } from './components/FooterBar'
 import { WorktreeList } from './components/WorktreeList'
@@ -105,6 +105,10 @@ export default function App(): JSX.Element {
         void api.openEditor(wt.id)
         showToast(`Opening ${wt.label} in editor…`)
       },
+      launchClaude: (wt: WorktreeSnapshot, mode: ClaudeMode) => {
+        void api.launchClaude(wt.id, mode)
+        showToast(`${mode === 'resume' ? 'Resuming' : 'Starting'} Claude in ${wt.label}…`)
+      },
       openJira: (wt: WorktreeSnapshot) => {
         void api.openJira(wt.id)
         showToast(`Opened ${wt.label} in Jira ↗`)
@@ -160,6 +164,8 @@ export default function App(): JSX.Element {
           deleteBranch={deleteBranch}
           canPromote={state.config.promoteCommand.trim() !== ''}
           jiraEnabled={state.config.jiraBaseUrl.trim() !== ''}
+          editorEnabled={state.config.editorCommand.trim() !== ''}
+          claudeEnabled={state.config.claudeCommand.trim() !== ''}
           actions={actions}
         />
       ) : state.configState === 'ok' ? (

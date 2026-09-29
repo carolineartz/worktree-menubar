@@ -1,8 +1,18 @@
-import { useRef, useState, type JSX, type MouseEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent,
+  type Ref
+} from 'react'
+import { createPortal } from 'react-dom'
 import { displayUrl, pillLabel } from '../../../shared/present'
-import type { WorktreeSnapshot } from '../../../shared/types'
+import type { ClaudeMode, WorktreeSnapshot } from '../../../shared/types'
 import {
   ChevronDown,
+  Claude,
   Destroy,
   Editor,
   GitHub,
@@ -20,6 +30,7 @@ export interface RowActions {
   toggleExpand(id: string): void
   openUrl(wt: WorktreeSnapshot): void
   openEditor(wt: WorktreeSnapshot): void
+  launchClaude(wt: WorktreeSnapshot, mode: ClaudeMode): void
   openJira(wt: WorktreeSnapshot): void
   openPr(wt: WorktreeSnapshot): void
   start(wt: WorktreeSnapshot): void
@@ -43,7 +54,8 @@ const KIND_VERB: Record<string, string> = {
   start: 'Start',
   stop: 'Stop',
   destroy: 'Destroy',
-  promote: 'Promote'
+  promote: 'Promote',
+  claude: 'Open Claude'
 }
 
 /** Borderless icon action for the strip. Native title tooltips don't render
@@ -53,16 +65,19 @@ function IconAction({
   className = 'iconbtn',
   disabled = false,
   onAct,
+  ref,
   children
 }: {
   tip: string
   className?: string
   disabled?: boolean
   onAct: () => void
+  ref?: Ref<HTMLButtonElement>
   children: React.ReactNode
 }): JSX.Element {
   return (
     <button
+      ref={ref}
       className={className}
       data-tip={tip}
       aria-label={tip}
@@ -77,6 +92,93 @@ function IconAction({
   )
 }
 
+/** Claude button and its New / Resume menu. The menu is portaled and fixed so
+ *  the list's scroll box can't clip it, and flips above when there's no room below. */
+function ClaudeMenu({
+  sessions,
+  onPick
+}: {
+  sessions: number
+  onPick: (mode: ClaudeMode) => void
+}): JSX.Element {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const close = (): void => {
+    setOpen(false)
+    setPos(null)
+  }
+
+  useLayoutEffect(() => {
+    const btn = btnRef.current
+    const menu = menuRef.current
+    if (!open || !btn || !menu) return
+    const b = btn.getBoundingClientRect()
+    const h = menu.offsetHeight
+    const fitsBelow = b.bottom + 4 + h <= window.innerHeight - 4
+    setPos({
+      top: fitsBelow ? b.bottom + 4 : b.top - 4 - h,
+      left: Math.min(b.left, window.innerWidth - menu.offsetWidth - 6)
+    })
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: Event): void => {
+      const t = e.target as Node
+      if (!menuRef.current?.contains(t) && !btnRef.current?.contains(t)) close()
+    }
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('blur', close)
+    // a fixed menu would stay put while the list scrolls its button away
+    document.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('blur', close)
+      document.removeEventListener('scroll', close, true)
+    }
+  }, [open])
+
+  const pick = (mode: ClaudeMode): void => {
+    close()
+    onPick(mode)
+  }
+
+  return (
+    <>
+      <IconAction
+        ref={btnRef}
+        tip="Claude"
+        className={open ? 'iconbtn menu-open' : 'iconbtn'}
+        onAct={() => (open ? close() : setOpen(true))}
+      >
+        <Claude />
+      </IconAction>
+      {open &&
+        createPortal(
+          // portal events still bubble to the row, whose click toggles expand
+          <div
+            ref={menuRef}
+            className="menu"
+            style={pos ?? { visibility: 'hidden' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="menu-item" onClick={() => pick('new')}>
+              New session
+            </button>
+            <button className="menu-item" disabled={sessions === 0} onClick={() => pick('resume')}>
+              Resume session…
+              <span className="menu-count">{sessions || 'none'}</span>
+            </button>
+          </div>,
+          document.body
+        )}
+    </>
+  )
+}
+
 export function WorktreeRow({
   wt,
   expanded,
@@ -85,6 +187,8 @@ export function WorktreeRow({
   deleteBranch,
   canPromote,
   jiraEnabled,
+  editorEnabled,
+  claudeEnabled,
   actions
 }: {
   wt: WorktreeSnapshot
@@ -96,6 +200,10 @@ export function WorktreeRow({
   canPromote: boolean
   /** a Jira base URL is configured — rows show the Jira button (dimmed without a ticket key) */
   jiraEnabled: boolean
+  /** an editor command is configured — rows show the editor button */
+  editorEnabled: boolean
+  /** a Claude command is configured — rows show the Claude menu button */
+  claudeEnabled: boolean
   actions: RowActions
 }): JSX.Element {
   const destroying = wt.status === 'destroying'
@@ -278,18 +386,6 @@ export function WorktreeRow({
               <>
                 {wt.served && (
                   <IconAction
-                    tip={isUp ? 'Open in browser' : 'Open in browser — not up'}
-                    disabled={!isUp}
-                    onAct={() => actions.openUrl(wt)}
-                  >
-                    <OpenAction />
-                  </IconAction>
-                )}
-                <IconAction tip="Open in editor" onAct={() => actions.openEditor(wt)}>
-                  <Editor />
-                </IconAction>
-                {wt.served && (
-                  <IconAction
                     tip={
                       isStopped
                         ? 'Start'
@@ -314,6 +410,15 @@ export function WorktreeRow({
                     <StopSquare />
                   </IconAction>
                 )}
+                {wt.served && (
+                  <IconAction
+                    tip={isUp ? 'Open in browser' : 'Open in browser — not up'}
+                    disabled={!isUp}
+                    onAct={() => actions.openUrl(wt)}
+                  >
+                    <OpenAction />
+                  </IconAction>
+                )}
                 {isStopped && !wt.served && canPromote && (
                   <button
                     className="ibtn promote"
@@ -327,6 +432,17 @@ export function WorktreeRow({
                   </button>
                 )}
                 <span className="spacer" />
+                {editorEnabled && (
+                  <IconAction tip="Open in editor" onAct={() => actions.openEditor(wt)}>
+                    <Editor />
+                  </IconAction>
+                )}
+                {claudeEnabled && (
+                  <ClaudeMenu
+                    sessions={wt.claudeSessions}
+                    onPick={(mode) => actions.launchClaude(wt, mode)}
+                  />
+                )}
                 {jiraEnabled && (
                   <IconAction
                     tip={wt.jiraUrl ? `Jira · ${wt.label}` : 'No ticket key in this branch'}

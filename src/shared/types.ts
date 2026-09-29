@@ -49,6 +49,8 @@ export interface WorktreeSnapshot {
   lastError: OpError | null
   /** the branch's PR has been merged — the row's dot becomes a merge glyph */
   prMerged: boolean
+  /** Claude Code transcripts recorded for this directory — 0 grays out Resume */
+  claudeSessions: number
 }
 
 export interface DestroyOptions {
@@ -59,6 +61,19 @@ export interface DestroyOptions {
 export type ConfigState = 'ok' | 'missing' | 'error'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
+
+/** Where the Claude menu opens its session; 'custom' runs terminalCommand. */
+export type TerminalApp = 'terminal' | 'iterm' | 'warp' | 'custom'
+
+export const TERMINAL_LABELS: Record<TerminalApp, string> = {
+  terminal: 'Terminal',
+  iterm: 'iTerm',
+  warp: 'Warp',
+  custom: 'Custom'
+}
+
+/** 'resume' runs the Claude command with --resume (the session picker). */
+export type ClaudeMode = 'new' | 'resume'
 
 /** Persisted at ~/.config/worktree-menubar.json — hand-editable. */
 export interface Config {
@@ -84,8 +99,17 @@ export interface Config {
   healthPath: string
   /** .env key naming the compose project; falls back to the directory name */
   composeProjectKey: string
-  /** command for "Editor", invoked with the worktree path */
+  /** command for "Editor", invoked with the worktree path; empty hides the button */
   editorCommand: string
+  /** Claude Code CLI the Claude menu runs in the worktree; empty hides the button */
+  claudeCommand: string
+  terminal: TerminalApp
+  /**
+   * Launch command for terminal 'custom', e.g. "my-term -e {script}".
+   * {script} is a generated script that cds into the worktree and runs the
+   * Claude command; {path} and {command} are also replaced.
+   */
+  terminalCommand: string
   /**
    * Jira site root, e.g. "https://cutover.atlassian.net". When set, rows whose
    * branch contains a ticket key (ABC-123) get a Jira link button. Empty
@@ -116,7 +140,10 @@ export const DEFAULT_CONFIG: Config = {
   hostUrlTemplate: 'http://{host}/',
   healthPath: '',
   composeProjectKey: 'COMPOSE_PROJECT_NAME',
-  editorCommand: 'code',
+  editorCommand: '',
+  claudeCommand: 'claude',
+  terminal: 'terminal',
+  terminalCommand: '',
   jiraBaseUrl: '',
   promoteCommand: '',
   includeMainCheckout: false,
@@ -129,7 +156,7 @@ export const DEFAULT_CONFIG: Config = {
 /** Result of a start/stop/destroy/promote command, pushed to the renderer for toasts. */
 export interface OpResult {
   id: WorktreeId
-  kind: 'start' | 'stop' | 'destroy' | 'promote'
+  kind: 'start' | 'stop' | 'destroy' | 'promote' | 'claude'
   ok: boolean
   /** toast text, e.g. "MDW-214 is up" */
   message: string
